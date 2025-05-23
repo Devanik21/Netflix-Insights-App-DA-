@@ -209,6 +209,39 @@ with col4:
     </div>
     """, unsafe_allow_html=True)
 
+# Comprehensive Data Overview
+with st.expander("📄 Comprehensive Data Overview", expanded=True):
+    st.subheader("Initial Dataset Insights")
+
+    if not df.empty:
+        st.markdown("#### First 5 Rows:")
+        st.dataframe(df.head())
+
+        col_info1, col_info2 = st.columns(2)
+        with col_info1:
+            st.markdown("#### Data Dimensions:")
+            st.write(f"Rows: {df.shape[0]:,}")
+            st.write(f"Columns: {df.shape[1]}")
+
+        with col_info2:
+            st.markdown("#### Missing Values (per column):")
+            missing_counts = df.isnull().sum()
+            missing_df = missing_counts[missing_counts > 0].rename("Missing Count").to_frame()
+            if not missing_df.empty:
+                st.dataframe(missing_df.T)
+            else:
+                st.success("No missing values found in the dataset.")
+
+        st.markdown("#### Column Data Types:")
+        st.dataframe(df.dtypes.rename("Data Type").to_frame().T)
+
+        st.markdown("#### Basic Statistical Summary:")
+        st.dataframe(df.describe(include='all'))
+
+    else:
+        st.warning("No data loaded to display overview.")
+
+
 # Tool 1: Content Performance Analytics
 with st.expander("📊 Tool 1: Content Performance Analytics"):
     if 'imdb_score' in df.columns and 'views_millions' in df.columns:
