@@ -175,7 +175,7 @@ def load_sample_netflix_data():
         'awards_won': np.random.randint(0, 50, num_titles),  # Awards won
         'nomination_for_best_picture': np.random.choice([0, 1], num_titles, p=[0.9, 0.1]), #Binary: 0 for No, 1 for Yes
         'nominations': np.random.randint(0, 100, num_titles), # Number of nominations        
-        'language': np.random.choice(['English', 'Spanish', 'French', 'German', 'Korean', 'Japanese', 'Hindi', 'Italian', 'Mandarin', 'Portuguese'], num_titles, p=[0.7, 0.1, 0.08, 0.05, 0.04, 0.03, 0.03, 0.02, 0.02, 0.03]),  # Language, sum is now 1.0
+        'language': np.random.choice(['English', 'Spanish', 'French', 'German', 'Korean', 'Japanese', 'Hindi', 'Italian', 'Mandarin', 'Portuguese'], num_titles, p=[0.6, 0.1, 0.08, 0.05, 0.04, 0.03, 0.03, 0.02, 0.02, 0.03]),  # Language, sum is now 1.0
         'aspect_ratio': np.random.choice(['16:9', '2.39:1', '4:3', '1.85:1'], num_titles), # Aspect Ratio
         'sound_mix': np.random.choice(['Dolby Digital', 'Dolby Atmos', 'Stereo', 'Mono'], num_titles), # Sound Mix
     }
