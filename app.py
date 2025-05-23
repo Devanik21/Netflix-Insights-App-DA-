@@ -291,11 +291,11 @@ with st.expander("🎯 Tool 12: Content Recommendation Engine"):
 # Tool 13: Executive Summary Generator
 with st.expander("📄 Tool 13: Executive Summary Generator"):
     summary_data = {
-        'Total Content': len(df),
-        'Content Mix': f"{len(df[df['type'] == 'Movie'])} Movies, {len(df[df['type'] == 'TV Show'])} TV Shows",
-        'Geographic Reach': f"{df['country'].nunique()} countries",
-        'Release Timeline': f"{df['release_year'].min()}-{df['release_year'].max()}",
-        'Top Genre': df['listed_in'].str.split(', ').explode().value_counts().index[0] if 'listed_in' in df.columns else 'N/A'
+        'Total Content': len(df) if not df.empty else 0,
+        'Content Mix': f"{len(df[df['type'] == 'Movie'])} Movies, {len(df[df['type'] == 'TV Show'])} TV Shows" if 'type' in df.columns and not df.empty else "N/A",
+        'Geographic Reach': f"{df['country'].nunique()} countries" if 'country' in df.columns and not df.empty else "N/A",
+        'Release Timeline': f"{df['release_year'].min()}-{df['release_year'].max()}" if 'release_year' in df.columns and not df.empty else "N/A",
+        'Top Genre': df['listed_in'].str.split(', ', expand=True).stack().value_counts().index[0] if 'listed_in' in df.columns and not df.empty and not df['listed_in'].dropna().empty else 'N/A'
     }
     
     st.subheader("Executive Summary")
