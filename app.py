@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -123,8 +122,14 @@ h1, h2, h3, h4, h5, h6 {
 
 st.markdown("**Advanced Analytics Suite for Data Analyst Capstone Project**")
 
-# Enhanced sample Netflix dataset
-
+@st.cache_data
+def load_preloaded_data(file_path="netflix_dataset_100k.csv"):
+    """Load the preloaded Netflix dataset."""
+    try:
+        return pd.read_csv(file_path)
+    except FileNotFoundError:
+        st.error(f"Error: The preloaded dataset '{file_path}' was not found. Please make sure it's in the same directory as the script or provide the correct path.")
+        return pd.DataFrame() # Return empty DataFrame on error
 
 # Sidebar
 st.sidebar.header("📂 Data Source")
@@ -132,10 +137,14 @@ file = st.sidebar.file_uploader("Upload Netflix dataset (CSV)", type="csv")
 
 if file is None:
     st.sidebar.info("Using sample dataset")
-    df = load_sample_netflix_data()
+    # Load the preloaded dataset by default
+    df = load_preloaded_data()
+    if df.empty:
+        st.stop() # Stop execution if preloaded data failed to load
 else:
     df = pd.read_csv(file)
     st.success("Custom dataset loaded!")
+
 
 # Gemini API
 gemini_key = st.sidebar.text_input("🔑 Gemini API Key", type="password")
