@@ -125,37 +125,230 @@ st.markdown("**Advanced Analytics Suite for Data Analyst Capstone Project**")
 # Enhanced sample Netflix dataset
 @st.cache_data
 def load_sample_netflix_data():
-    """Create comprehensive Netflix dataset for analysis"""
-    sample_data = {
-        'show_id': [f's{i}' for i in range(1, 51)],
-        'type': ['Movie', 'TV Show'] * 25,
-        'title': ['Dark', 'Stranger Things', 'The Irishman', 'Money Heist', 'Bird Box', 'Roma', 'The Crown', 'Extraction', 'Ozark', 'The Platform',
-                 'Narcos', 'Black Mirror', 'The Witcher', 'Orange is the New Black', 'House of Cards', 'Mindhunter', 'Breaking Bad', 'Better Call Saul',
-                 'The Office', 'Friends', 'Squid Game', 'Lupin', 'Emily in Paris', 'Bridgerton', 'The Queen\'s Gambit', 'Tiger King', 'Making a Murderer',
-                 'Wild Wild Country', 'Our Planet', 'Chef\'s Table', 'The Movies That Made Us', 'High Score', 'The Social Dilemma', 'My Octopus Teacher',
-                 'American Factory', 'Icarus', 'Won\'t You Be My Neighbor?', 'RBG', 'Free Solo', 'The Great Hack', 'Explained', 'Abstract', 'Salt Fat Acid Heat',
-                 'Ugly Delicious', 'Street Food', 'The Mind, Explained', 'Sex Education', 'Elite', 'Cable Girls', 'Money Heist: Korea'],
-        'director': ['Baran bo Odar', 'The Duffer Brothers', 'Martin Scorsese', 'Álex Pina', 'Susanne Bier',
-                     'Alfonso Cuarón', 'Peter Morgan', 'Sam Hargrave', 'Bill Dubuque', 'Galder Gaztelu-Urrutia'] * 5, # Adjusted for 50 titles
-        'cast': [
-            'Louis Hofmann, Karoline Eichhorn, Lisa Vicari', 'Millie Bobby Brown, Finn Wolfhard, Winona Ryder', 'Robert De Niro, Al Pacino, Joe Pesci',
-            'Úrsula Corberó, Álvaro Morte, Itziar Ituño', 'Sandra Bullock, Trevante Rhodes, John Malkovich',
-            'Yalitza Aparicio, Marina de Tavira, Fernando Grediaga', 'Olivia Colman, Tobias Menzies, Helena Bonham Carter', 'Chris Hemsworth, Rudhraksh Jaiswal, Randeep Hooda',
-            'Jason Bateman, Laura Linney, Sofia Hublitz', 'Iván Massagué, Zorion Eguileor, Antonia San Juan'] * 5, # 50 cast entries
-        'country': ['Germany', 'United States', 'United States', 'Spain', 'United States', 'Mexico', 'United Kingdom', 'United States', 'United States', 'Spain'] * 5,
-        'release_year': [2017, 2016, 2019, 2017, 2018, 2018, 2016, 2020, 2017, 2019, 2015, 2011, 2019, 2013, 2013, 2017, 2008, 2015, 2005, 1994,
-                        2021, 2021, 2020, 2020, 2020, 2020, 2015, 2018, 2019, 2017, 2019, 2020, 2020, 2020, 2019, 2017, 2018, 2018, 2018, 2019,
-                        2018, 2017, 2017, 2019, 2019, 2019, 2019, 2017, 2017, 2021],
-        'rating': ['TV-14', 'TV-14', 'R', 'TV-MA', 'R', 'R', 'TV-MA', 'R', 'TV-MA', 'TV-MA'] * 5,
-        'duration': ['1 Season', '4 Seasons', '209 min', '4 Seasons', '124 min', '135 min', '6 Seasons', '116 min', '4 Seasons', '94 min'] * 5,
-        'listed_in': ['Crime TV Shows, International TV Shows, TV Dramas', 'TV Horror, TV Sci-Fi & Fantasy, TV Thrillers', 'Crime Movies, Dramas', 
-                     'Crime TV Shows, International TV Shows, Spanish-Language TV Shows', 'Horror Movies, Sci-Fi Movies, Thrillers'] * 10,
-        'imdb_score': np.clip(np.random.normal(7.5, 0.8, 50), 4.0, 9.8).round(1), # More realistic IMDb scores
-        'date_added': pd.to_datetime([f'{np.random.randint(2015, 2023)}-{np.random.randint(1,13):02d}-{np.random.randint(1,29):02d}' for _ in range(50)]),
-        'budget_millions': np.random.uniform(10, 200, 50).round(1),
-        'views_millions': np.random.uniform(50, 500, 50).round(1)
+    """Create comprehensive Netflix dataset with 1000 rows for analysis"""
+    
+    # Set random seed for reproducibility
+    np.random.seed(42)
+    random.seed(42)
+    
+    # Extended lists for realistic data generation
+    movie_titles = [
+        'The Irishman', 'Roma', 'Bird Box', 'Extraction', 'The Platform', 'Okja', '6 Underground', 
+        'Triple Frontier', 'The Old Guard', 'Project Power', 'Enola Holmes', 'The Kissing Booth',
+        'To All the Boys I\'ve Loved Before', 'The Half of It', 'Always Be My Maybe', 'Set It Up',
+        'The Perfect Date', 'Someone Great', 'Wine Country', 'Murder Mystery', 'Spenser Confidential',
+        'Da 5 Bloods', 'Ma Rainey\'s Black Bottom', 'Mank', 'The Trial of the Chicago 7',
+        'I Care a Lot', 'Malcolm & Marie', 'Pieces of a Woman', 'The Woman in the Window',
+        'Thunder Force', 'Yes Day', 'The Mitchells vs. The Machines', 'Army of the Dead',
+        'Oxygen', 'Awake', 'Sweet Tooth', 'Jupiter\'s Legacy', 'Shadow and Bone',
+        'The Serpent', 'Who Killed Sara?', 'Elite', 'Money Heist', 'Dark', 'Biohackers',
+        'We Are the Wave', 'Dogs of Berlin', 'Parfum', 'Babylon Berlin', 'Deutschland 83'
+    ]
+    
+    tv_show_titles = [
+        'Stranger Things', 'The Crown', 'Ozark', 'House of Cards', 'Orange is the New Black',
+        'Black Mirror', 'The Witcher', 'Narcos', 'Mindhunter', 'Breaking Bad', 'Better Call Saul',
+        'The Office', 'Friends', 'Squid Game', 'Lupin', 'Emily in Paris', 'Bridgerton',
+        'The Queen\'s Gambit', 'Tiger King', 'Making a Murderer', 'Wild Wild Country',
+        'Our Planet', 'Chef\'s Table', 'Sex Education', 'Elite', 'Cable Girls',
+        'La Casa de Papel', 'Dark', 'The Umbrella Academy', 'Lucifer', 'You',
+        'Never Have I Ever', 'The Good Place', 'Schitt\'s Creek', 'Anne with an E',
+        'Atypical', 'On My Block', 'Dear White People', 'Glow', 'Russian Doll',
+        'The Haunting of Hill House', 'Ratched', 'The Queen\'s Gambit', 'Cobra Kai',
+        'Outer Banks', 'Ginny & Georgia', 'Shadow and Bone', 'The Irregulars'
+    ]
+    
+    directors = [
+        'Martin Scorsese', 'Alfonso Cuarón', 'Susanne Bier', 'Sam Hargrave', 'Galder Gaztelu-Urrutia',
+        'Bong Joon-ho', 'Michael Bay', 'J.J. Abrams', 'Gina Prince-Bythewood', 'Henry Joost',
+        'Ariel Schulman', 'Harry Bradbeer', 'Vince Marcello', 'Susan Johnson', 'Eliza Hittman',
+        'Nahnatchka Khan', 'Claire Scanlon', 'Jennifer Kaytin Robinson', 'Amy Poehler',
+        'Kyle Newacheck', 'Peter Berg', 'Spike Lee', 'George C. Wolfe', 'David Fincher',
+        'Aaron Sorkin', 'J Blakeson', 'Sam Levinson', 'Kornél Mundruczó', 'Joe Wright',
+        'Ben Falcone', 'Miguel Arteta', 'Mike Rianda', 'Zack Snyder', 'Alexandre Aja',
+        'Mark Raso', 'Jim Mickle', 'Steven S. DeKnight', 'Eric Heisserer', 'Tom Shankland'
+    ]
+    
+    countries = [
+        'United States', 'United Kingdom', 'Spain', 'Germany', 'France', 'South Korea',
+        'Japan', 'India', 'Brazil', 'Mexico', 'Canada', 'Australia', 'Italy', 'Netherlands',
+        'Sweden', 'Norway', 'Denmark', 'Poland', 'Russia', 'Turkey', 'Argentina', 'Colombia'
+    ]
+    
+    genres = [
+        'Action & Adventure', 'Comedies', 'Documentaries', 'Dramas', 'Horror Movies',
+        'Independent Movies', 'International Movies', 'Music & Musicals', 'Romantic Movies',
+        'Sci-Fi & Fantasy', 'Sports Movies', 'Thrillers', 'TV Action & Adventure',
+        'TV Comedies', 'TV Documentaries', 'TV Dramas', 'TV Horror', 'TV Mysteries',
+        'TV Sci-Fi & Fantasy', 'TV Thrillers', 'Crime Movies', 'Children & Family Movies',
+        'Classic Movies', 'Cult Movies', 'Faith & Spirituality', 'LGBTQ Movies',
+        'Stand-Up Comedy', 'Anime Features', 'Korean Movies', 'Spanish-Language Movies'
+    ]
+    
+    ratings = ['G', 'PG', 'PG-13', 'R', 'NC-17', 'TV-Y', 'TV-Y7', 'TV-G', 'TV-PG', 'TV-14', 'TV-MA', 'NR']
+    
+    languages = [
+        'English', 'Spanish', 'French', 'German', 'Korean', 'Japanese', 'Portuguese',
+        'Italian', 'Dutch', 'Swedish', 'Norwegian', 'Danish', 'Polish', 'Russian',
+        'Turkish', 'Hindi', 'Mandarin', 'Arabic', 'Hebrew', 'Thai'
+    ]
+    
+    # Generate 1000 rows of data
+    data = {
+        'show_id': [f's{i}' for i in range(1, 1001)],
+        'type': np.random.choice(['Movie', 'TV Show'], 1000, p=[0.7, 0.3]),
+        'title': [],
+        'director': [],
+        'cast': [],
+        'country': np.random.choice(countries, 1000),
+        'release_year': np.random.randint(1990, 2024, 1000),
+        'date_added': [],
+        'rating': np.random.choice(ratings, 1000, p=[0.02, 0.08, 0.25, 0.20, 0.02, 0.01, 0.02, 0.05, 0.15, 0.15, 0.04, 0.01]),
+        'duration': [],
+        'listed_in': [],
+        'description': [],
+        'imdb_score': np.clip(np.random.normal(6.8, 1.2, 1000), 1.0, 10.0).round(1),
+        'rotten_tomatoes_score': np.clip(np.random.normal(65, 20, 1000), 0, 100).round(0),
+        'budget_millions': np.random.lognormal(3, 1, 1000).round(1),
+        'box_office_millions': [],
+        'views_millions': np.random.lognormal(4, 1.5, 1000).round(1),
+        'watch_time_hours': [],
+        'user_rating': np.clip(np.random.normal(3.8, 0.8, 1000), 1.0, 5.0).round(1),
+        'review_count': np.random.lognormal(8, 2, 1000).astype(int),
+        'awards_won': np.random.poisson(0.5, 1000),
+        'awards_nominated': np.random.poisson(1.2, 1000),
+        'primary_language': np.random.choice(languages, 1000, p=[0.4, 0.15, 0.08, 0.06, 0.05, 0.04, 0.04, 0.03, 0.03, 0.02, 0.02, 0.02, 0.02, 0.02, 0.01, 0.01] + [0.005]*4),
+        'subtitles_available': np.random.choice([True, False], 1000, p=[0.85, 0.15]),
+        'audio_languages_count': np.random.randint(1, 8, 1000),
+        'age_certification': [],
+        'production_company': [],
+        'streaming_quality': np.random.choice(['HD', '4K', 'SD'], 1000, p=[0.6, 0.35, 0.05]),
+        'genre_primary': np.random.choice(genres, 1000),
+        'genre_secondary': [],
+        'target_audience': np.random.choice(['Kids', 'Teens', 'Adults', 'Family'], 1000, p=[0.1, 0.2, 0.6, 0.1]),
+        'content_warning': np.random.choice([True, False], 1000, p=[0.3, 0.7]),
+        'trending_rank': [],
+        'popularity_score': np.random.uniform(0, 100, 1000).round(1),
+        'completion_rate': np.random.uniform(0.3, 0.95, 1000).round(2),
+        'episode_count': [],
+        'season_count': [],
+        'runtime_minutes': [],
+        'critic_score': np.clip(np.random.normal(62, 18, 1000), 0, 100).round(0),
+        'audience_score': np.clip(np.random.normal(68, 15, 1000), 0, 100).round(0),
+        'binge_watch_score': np.random.uniform(1, 10, 1000).round(1),
+        'rewatch_value': np.random.uniform(1, 5, 1000).round(1),
+        'cultural_impact_score': np.random.uniform(1, 10, 1000).round(1),
+        'social_media_mentions': np.random.lognormal(6, 2, 1000).astype(int),
+        'meme_potential': np.random.uniform(0, 10, 1000).round(1),
+        'educational_value': np.random.uniform(0, 10, 1000).round(1),
+        'violence_level': np.random.choice(['None', 'Mild', 'Moderate', 'High'], 1000, p=[0.2, 0.4, 0.3, 0.1]),
+        'profanity_level': np.random.choice(['None', 'Mild', 'Moderate', 'High'], 1000, p=[0.15, 0.45, 0.3, 0.1]),
+        'sexual_content': np.random.choice(['None', 'Mild', 'Moderate', 'Explicit'], 1000, p=[0.4, 0.35, 0.2, 0.05]),
+        'diversity_score': np.random.uniform(1, 10, 1000).round(1),
+        'female_representation': np.random.uniform(0, 1, 1000).round(2),
+        'minority_representation': np.random.uniform(0, 1, 1000).round(2)
     }
-    return pd.DataFrame(sample_data)
+    
+    # Generate dependent fields
+    for i in range(1000):
+        # Title based on type
+        if data['type'][i] == 'Movie':
+            data['title'].append(random.choice(movie_titles + [f"Movie Title {i}"]))
+            # Movie durations (80-180 minutes)
+            runtime = np.random.randint(80, 181)
+            data['duration'].append(f"{runtime} min")
+            data['runtime_minutes'].append(runtime)
+            data['episode_count'].append(1)
+            data['season_count'].append(1)
+            # Box office for movies
+            budget = data['budget_millions'][i]
+            box_office = max(0, np.random.normal(budget * 2.5, budget * 1.5))
+            data['box_office_millions'].append(round(box_office, 1))
+            # Watch time for movies
+            data['watch_time_hours'].append(round(runtime / 60, 1))
+        else:
+            data['title'].append(random.choice(tv_show_titles + [f"TV Show {i}"]))
+            # TV show seasons and episodes
+            seasons = np.random.randint(1, 8)
+            episodes_per_season = np.random.randint(6, 24)
+            total_episodes = seasons * episodes_per_season
+            data['duration'].append(f"{seasons} Season{'s' if seasons > 1 else ''}")
+            data['episode_count'].append(total_episodes)
+            data['season_count'].append(seasons)
+            # No box office for TV shows
+            data['box_office_millions'].append(0)
+            # Runtime and watch time for TV shows
+            avg_episode_runtime = np.random.randint(20, 65)
+            data['runtime_minutes'].append(avg_episode_runtime)
+            total_watch_time = (total_episodes * avg_episode_runtime) / 60
+            data['watch_time_hours'].append(round(total_watch_time, 1))
+        
+        # Director
+        data['director'].append(random.choice(directors + ['Unknown Director', 'Various Directors']))
+        
+        # Cast (2-5 actors)
+        num_actors = np.random.randint(2, 6)
+        cast_list = [f"Actor {j}" for j in range(num_actors)]
+        data['cast'].append(', '.join(cast_list))
+        
+        # Date added (between 2008 and 2023)
+        start_date = datetime(2008, 1, 1)
+        end_date = datetime(2023, 12, 31)
+        random_date = start_date + timedelta(days=np.random.randint(0, (end_date - start_date).days))
+        data['date_added'].append(random_date.strftime('%Y-%m-%d'))
+        
+        # Listed in (1-3 genres)
+        num_genres = np.random.randint(1, 4)
+        selected_genres = random.sample(genres, num_genres)
+        data['listed_in'].append(', '.join(selected_genres))
+        
+        # Secondary genre
+        primary_genre = data['genre_primary'][i]
+        available_genres = [g for g in genres if g != primary_genre]
+        data['genre_secondary'].append(random.choice(available_genres + ['None']))
+        
+        # Description
+        descriptions = [
+            "A gripping tale of love, loss, and redemption.",
+            "An action-packed adventure that will keep you on the edge of your seat.",
+            "A heartwarming story about family and friendship.",
+            "A mind-bending thriller with unexpected twists.",
+            "A romantic comedy that will make you laugh and cry.",
+            "A documentary exploring the depths of human nature.",
+            "A sci-fi epic that pushes the boundaries of imagination.",
+            "A crime drama based on true events.",
+            "A coming-of-age story set in a small town.",
+            "A historical drama that brings the past to life."
+        ]
+        data['description'].append(random.choice(descriptions))
+        
+        # Age certification based on rating
+        rating_to_cert = {
+            'G': 'All Ages', 'PG': '7+', 'PG-13': '13+', 'R': '17+', 'NC-17': '18+',
+            'TV-Y': 'All Ages', 'TV-Y7': '7+', 'TV-G': 'All Ages', 'TV-PG': '7+',
+            'TV-14': '14+', 'TV-MA': '17+', 'NR': 'Not Rated'
+        }
+        data['age_certification'].append(rating_to_cert.get(data['rating'][i], 'Not Rated'))
+        
+        # Production company
+        companies = [
+            'Netflix Studios', 'Sony Pictures', 'Warner Bros', 'Universal Pictures',
+            'Paramount Pictures', 'Disney', '20th Century Studios', 'Lionsgate',
+            'MGM', 'A24', 'Blumhouse Productions', 'Legendary Entertainment'
+        ]
+        data['production_company'].append(random.choice(companies))
+        
+        # Trending rank (1-100, with some having no rank)
+        if np.random.random() < 0.3:  # 30% chance of being in trending
+            data['trending_rank'].append(np.random.randint(1, 101))
+        else:
+            data['trending_rank'].append(None)
+    
+    return pd.DataFrame(data)
+
+# Generate the dataset
+load_sample_netflix_data()
+
 
 # Sidebar
 st.sidebar.header("📂 Data Source")
