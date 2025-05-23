@@ -336,5 +336,62 @@ with st.expander("📤 Tool 15: Data Export & Reporting"):
         else:
             st.success("Excel summary prepared (implementation would generate comprehensive report)")
 
+# Tool 16: Director Performance Analysis
+with st.expander("🎬 Tool 16: Director Performance Analysis"):
+    if 'director' in df.columns and 'title' in df.columns:
+        st.subheader("Director Analysis")
+        # Filter out rows where director is NaN or 'Unknown' if necessary, though sample data is clean
+        # For this example, we'll assume directors are mostly single individuals or known groups
+        # In a real dataset, director column might need more cleaning (e.g., splitting multiple directors)
+        
+        director_counts = df['director'].value_counts().head(10)
+        fig_director_titles = px.bar(director_counts, x=director_counts.index, y=director_counts.values,
+                                     labels={'x': 'Director', 'y': 'Number of Titles'},
+                                     title="Top 10 Directors by Number of Titles")
+        st.plotly_chart(fig_director_titles, use_container_width=True)
+
+        if 'imdb_score' in df.columns:
+            # Calculate average IMDb score per director
+            # For simplicity, considering only directors with at least 2 titles for score analysis
+            director_title_counts = df['director'].value_counts()
+            directors_for_score_analysis = director_title_counts[director_title_counts >= 2].index
+            
+            if not directors_for_score_analysis.empty:
+                avg_score_by_director = df[df['director'].isin(directors_for_score_analysis)].groupby('director')['imdb_score'].mean().sort_values(ascending=False).head(10)
+                fig_director_score = px.bar(avg_score_by_director, x=avg_score_by_director.index, y=avg_score_by_director.values,
+                                             labels={'x': 'Director', 'y': 'Average IMDb Score'},
+                                             title="Top Directors by Average IMDb Score (min. 2 titles)")
+                st.plotly_chart(fig_director_score, use_container_width=True)
+            else:
+                st.write("Not enough data for director IMDb score analysis (requires directors with >= 2 titles).")
+    else:
+        st.info("Director and/or title information not available for this analysis.")
+
+# Tool 17: Title Word Cloud
+with st.expander("☁️ Tool 17: Title Word Cloud"):
+    if 'title' in df.columns:
+        st.subheader("Word Cloud from Content Titles")
+        text = " ".join(title for title in df['title'].astype(str))
+        if text.strip():
+            wordcloud = WordCloud(width=800, height=400, background_color='white').generate(text)
+            fig, ax = plt.subplots()
+            ax.imshow(wordcloud, interpolation='bilinear')
+            ax.axis('off')
+            st.pyplot(fig)
+        else:
+            st.write("No titles available to generate a word cloud.")
+    else:
+        st.info("Title information not available for word cloud generation.")
+
+# Tool 18: Content Type Evolution Over Time
+with st.expander("🔄 Tool 18: Content Type Evolution Over Time"):
+    if 'release_year' in df.columns and 'type' in df.columns:
+        content_type_evolution = df.groupby(['release_year', 'type']).size().reset_index(name='count')
+        fig = px.line(content_type_evolution, x='release_year', y='count', color='type',
+                     title="Content Type Releases Over Time", labels={'release_year': 'Release Year', 'count': 'Number of Titles'})
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("Release year and/or type information not available for this analysis.")
+
 st.markdown("---")
 st.markdown("**Netflix Data Analytics Dashboard** - Comprehensive toolkit for data analysis capstone projects")
