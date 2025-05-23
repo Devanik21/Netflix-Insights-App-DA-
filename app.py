@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import google.generativeai as genai
 import io
+import os
 
 st.set_page_config(page_title="Netflix Content Insights Tool", layout="wide")
 st.title("🎬 Netflix Content Insights Tool")
@@ -12,6 +13,13 @@ st.markdown("Analyze genre popularity, trends, and gaps across the globe using N
 st.sidebar.header("📂 Upload Netflix Dataset")
 file = st.sidebar.file_uploader("Upload your Netflix dataset (CSV)", type="csv")
 
+# Load sample dataset if user doesn't upload
+if file is None:
+    st.sidebar.info("No file uploaded. Using sample Netflix dataset.")
+    file_path = os.path.join("/mnt/data", "netflix_titles.csv")
+    file = file_path if os.path.exists(file_path) else None
+
+# Gemini API
 gemini_key = st.sidebar.text_input("🔑 Gemini API Key", type="password")
 if gemini_key:
     genai.configure(api_key=gemini_key)
