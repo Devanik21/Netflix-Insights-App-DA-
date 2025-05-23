@@ -515,5 +515,112 @@ with st.expander("💬 Tool 21: AI Chat with Dataset"):
     else:
         st.info("Please enter your Gemini API key in the sidebar to use the AI Chat feature.")
 
+# Tool 22: Content Freshness Analysis
+with st.expander("⏳ Tool 22: Content Freshness Analysis"):
+    if 'release_year' in df.columns:
+        st.subheader("Content Age Analysis")
+        current_year = datetime.now().year
+        df_copy = df.copy() # Work on a copy to avoid modifying the original df
+        df_copy['content_age'] = current_year - df_copy['release_year']
+
+        fig_age_dist = px.histogram(df_copy, x='content_age', nbins=20,
+                                    title="Distribution of Content Age (Years)",
+                                    labels={'content_age': 'Content Age (Years)'})
+        st.plotly_chart(fig_age_dist, use_container_width=True)
+
+        if 'imdb_score' in df_copy.columns:
+            fig_age_score = px.scatter(df_copy, x='content_age', y='imdb_score', trendline="ols",
+                                       title="Content Age vs. IMDb Score",
+                                       labels={'content_age': 'Content Age (Years)', 'imdb_score': 'IMDb Score'})
+            st.plotly_chart(fig_age_score, use_container_width=True)
+
+        if 'views_millions' in df_copy.columns:
+            fig_age_views = px.scatter(df_copy, x='content_age', y='views_millions', trendline="ols",
+                                       title="Content Age vs. Views (Millions)",
+                                       labels={'content_age': 'Content Age (Years)', 'views_millions': 'Views (Millions)'})
+            st.plotly_chart(fig_age_views, use_container_width=True)
+    else:
+        st.info("Release year information not available for content freshness analysis.")
+
+# Tool 23: Interactive World Map of Content Production
+with st.expander("🗺️ Tool 23: Interactive World Map of Content Production"):
+    if 'country' in df.columns:
+        st.subheader("Global Content Production Map")
+        # Handle multiple countries by taking the first one listed for simplicity in mapping
+        # A more advanced approach might involve exploding rows or using a primary production country
+        df_map = df.copy()
+        df_map['primary_country'] = df_map['country'].astype(str).apply(lambda x: x.split(',')[0].strip())
+        
+        country_counts_map = df_map['primary_country'].value_counts().reset_index()
+        country_counts_map.columns = ['country', 'title_count']
+
+        if not country_counts_map.empty:
+            fig_map = px.choropleth(country_counts_map, 
+                                    locations="country", 
+                                    locationmode='country names', 
+                                    color="title_count",
+                                    hover_name="country", 
+                                    color_continuous_scale=px.colors.sequential.Plasma,
+                                    title="Number of Titles Produced by Country")
+            st.plotly_chart(fig_map, use_container_width=True)
+        else:
+            st.write("No country data available to display on the map.")
+    else:
+        st.info("Country information not available for map visualization.")
+
+# Tool 24: Movie vs. TV Show Deep Comparison
+with st.expander("🎬 vs 📺 Tool 24: Movie vs. TV Show Deep Comparison"):
+    if 'type' in df.columns:
+        st.subheader("Movie vs. TV Show Metrics")
+        movies_df = df[df['type'] == 'Movie']
+        tv_shows_df = df[df['type'] == 'TV Show']
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("#### Movies")
+            st.metric("Total Movies", len(movies_df))
+            if 'imdb_score' in movies_df.columns:
+                st.metric("Avg. IMDb Score (Movies)", f"{movies_df['imdb_score'].mean():.2f}" if not movies_df.empty else "N/A")
+            if 'duration' in movies_df.columns: # Assuming duration for movies is in minutes
+                movies_df['duration_numeric'] = movies_df['duration'].str.extract('(\d+)').astype(float)
+                st.metric("Avg. Duration (Movies)", f"{movies_df['duration_numeric'].mean():.0f} min" if not movies_df.empty else "N/A")
+            if 'rating' in movies_df.columns and not movies_df.empty:
+                fig_movie_ratings = px.pie(movies_df, names='rating', title='Movie Rating Distribution')
+                st.plotly_chart(fig_movie_ratings, use_container_width=True)
+
+        with col2:
+            st.markdown("#### TV Shows")
+            st.metric("Total TV Shows", len(tv_shows_df))
+            if 'imdb_score' in tv_shows_df.columns:
+                st.metric("Avg. IMDb Score (TV Shows)", f"{tv_shows_df['imdb_score'].mean():.2f}" if not tv_shows_df.empty else "N/A")
+            if 'duration' in tv_shows_df.columns: # Assuming duration for TV shows is in seasons
+                tv_shows_df['duration_numeric'] = tv_shows_df['duration'].str.extract('(\d+)').astype(float)
+                st.metric("Avg. Seasons (TV Shows)", f"{tv_shows_df['duration_numeric'].mean():.1f}" if not tv_shows_df.empty else "N/A")
+            if 'rating' in tv_shows_df.columns and not tv_shows_df.empty:
+                fig_tv_ratings = px.pie(tv_shows_df, names='rating', title='TV Show Rating Distribution')
+                st.plotly_chart(fig_tv_ratings, use_container_width=True)
+    else:
+        st.info("Content 'type' information not available for this comparison.")
+
+# Tool 25: Release Month/Seasonality Analysis
+with st.expander("🗓️ Tool 25: Release Month/Seasonality Analysis"):
+    if 'date_added' in df.columns:
+        st.subheader("Content Addition Seasonality")
+        df_season = df.copy()
+        df_season['date_added'] = pd.to_datetime(df_season['date_added'], errors='coerce')
+        df_season.dropna(subset=['date_added'], inplace=True) # Drop rows where date_added couldn't be parsed
+        df_season['month_added'] = df_season['date_added'].dt.month_name()
+        
+        month_order = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+        titles_by_month = df_season['month_added'].value_counts().reindex(month_order, fill_value=0)
+        
+        fig_month_releases = px.bar(titles_by_month, x=titles_by_month.index, y=titles_by_month.values,
+                                    title="Number of Titles Added by Month",
+                                    labels={'x': 'Month Added', 'y': 'Number of Titles'})
+        st.plotly_chart(fig_month_releases, use_container_width=True)
+    else:
+        st.info("'date_added' column not available for seasonality analysis.")
+
 st.markdown("---")
 st.markdown("**Netflix Data Analytics Dashboard** - Comprehensive toolkit for data analysis capstone projects")
