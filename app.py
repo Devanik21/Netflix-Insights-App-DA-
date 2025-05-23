@@ -912,7 +912,7 @@ with st.expander("📝 Tool 35: Description Keyword Analysis"):
         st.subheader("Most Frequent Keywords in Descriptions")
         
         df_tool35 = df.copy()
-        df_tool35.dropna(subset=['description'], inplace=True, inplace=True)
+        df_tool35.dropna(subset=['description'], inplace=True)
 
         if not df_tool35.empty:
             # Simple tokenization and cleaning
