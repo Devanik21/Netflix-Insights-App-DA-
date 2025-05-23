@@ -144,7 +144,7 @@ def load_sample_netflix_data():
         'country': np.random.choice([
             'United States', 'United Kingdom', 'Canada', 'India', 'South Korea', 'Japan', 'France', 'Spain',
             'Germany', 'Mexico', 'Brazil', 'Australia', 'China', 'Italy', 'Argentina'
-        ], num_titles, p=[0.3, 0.15, 0.1, 0.1, 0.05, 0.05, 0.04, 0.04, 0.03, 0.03, 0.02, 0.02, 0.02, 0.02, 0.01]),
+        ], num_titles, p=[0.32, 0.15, 0.1, 0.1, 0.05, 0.05, 0.04, 0.04, 0.03, 0.03, 0.02, 0.02, 0.02, 0.02, 0.01]), # Sum is now 1.0
         'release_year': np.random.randint(2000, 2024, num_titles),
         'rating': np.random.choice([
             'G', 'PG', 'PG-13', 'R', 'NC-17', 'TV-Y', 'TV-Y7', 'TV-G', 'TV-PG', 'TV-14', 'TV-MA', 'UR'
@@ -170,8 +170,8 @@ def load_sample_netflix_data():
         'views_millions': np.random.uniform(1, 800, num_titles).round(1),
         'awards_won': np.random.randint(0, 50, num_titles),  # Awards won
         'nomination_for_best_picture': np.random.choice([0, 1], num_titles, p=[0.9, 0.1]), #Binary: 0 for No, 1 for Yes
-        'nominations': np.random.randint(0, 100, num_titles), # Number of nominations
-        'language': np.random.choice(['English', 'Spanish', 'French', 'German', 'Korean', 'Japanese', 'Hindi', 'Italian', 'Mandarin', 'Portuguese'], num_titles, p=[0.6, 0.1, 0.08, 0.05, 0.04, 0.03, 0.03, 0.02, 0.02, 0.03]),  # Language
+        'nominations': np.random.randint(0, 100, num_titles), # Number of nominations        
+        'language': np.random.choice(['English', 'Spanish', 'French', 'German', 'Korean', 'Japanese', 'Hindi', 'Italian', 'Mandarin', 'Portuguese'], num_titles, p=[0.7, 0.1, 0.08, 0.05, 0.04, 0.03, 0.03, 0.02, 0.02, 0.03]),  # Language, sum is now 1.0
         'aspect_ratio': np.random.choice(['16:9', '2.39:1', '4:3', '1.85:1'], num_titles), # Aspect Ratio
         'sound_mix': np.random.choice(['Dolby Digital', 'Dolby Atmos', 'Stereo', 'Mono'], num_titles), # Sound Mix
     }
