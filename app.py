@@ -134,10 +134,39 @@ def load_sample_netflix_data():
         f'{np.random.randint(60, 240)} min' if t == 'Movie' else f'{np.random.randint(1, 10)} Seasons'
         for t in types_list
     ]
+    # More realistic titles
+    realistic_titles = [
+        "Stranger Things", "The Crown", "Bridgerton", "Money Heist", "The Witcher", "Ozark", "Narcos",
+        "Black Mirror", "Squid Game", "Lupin", "Emily in Paris", "The Queen's Gambit", "Dark",
+        "You", "Sex Education", "Cobra Kai", "Outer Banks", "Never Have I Ever", "Lucifer", "Elite",
+        "The Umbrella Academy", "Dead to Me", "Russian Doll", "Mindhunter", "Peaky Blinders",
+        "Extraction", "The Irishman", "Bird Box", "Roma", "Marriage Story", "The Platform", "Enola Holmes",
+        "Project Power", "The Old Guard", "Spenser Confidential", "6 Underground", "Murder Mystery",
+        "The Kissing Booth", "To All the Boys I've Loved Before", "Always Be My Maybe", "Set It Up",
+        "The Social Dilemma", "My Octopus Teacher", "American Factory", "Tiger King", "Making a Murderer",
+        "Chef's Table", "Our Planet", "Explained", "Unorthodox", "When They See Us", "The Haunting of Hill House",
+        "Midnight Mass", "Maid", "Clickbait", "Behind Her Eyes", "Shadow and Bone", "Sweet Tooth",
+        "Virgin River", "Firefly Lane", "Ginny & Georgia", "The Circle", "Too Hot to Handle", "Love is Blind",
+        "Selling Sunset", "Bling Empire", "Floor Is Lava", "Nailed It!", "Queer Eye", "Rhythm + Flow",
+        "The Great British Baking Show", "Anne with an E", "Atypical", "BoJack Horseman", "Big Mouth",
+        "The Dragon Prince", "She-Ra and the Princesses of Power", "Hilda", "Klaus", "Over the Moon",
+        "The Mitchells vs. the Machines", "Vivo", "Wish Dragon", "I Lost My Body", "The Willoughbys",
+        "Next Gen", "Fear Street Trilogy", "Army of the Dead", "The Midnight Sky", "Don't Look Up",
+        "Red Notice", "The Adam Project", "The Gray Man", "Glass Onion: A Knives Out Mystery", "Hustle",
+        "The Sea Beast", "Slumberland", "Guillermo del Toro's Pinocchio", "Matilda the Musical",
+        "All Quiet on the Western Front", "Blonde", "White Noise", "The Pale Blue Eye", "You People",
+        "Luther: The Fallen Sun", "Murder Mystery 2", "A Tourist's Guide to Love", "The Mother",
+        "Extraction 2", "They Cloned Tyrone", "Heart of Stone", "Reptile", "The Killer", "Leave the World Behind",
+        "Rebel Moon: Part One – A Child of Fire", "Lift", "Damsel", "Spaceman", "Irish Wish",
+        "Wednesday", "The Diplomat", "The Night Agent", "Beef", "Queen Charlotte: A Bridgerton Story",
+        "XO, Kitty", "FUBAR", "Glamorous", "The Lincoln Lawyer", "Manifest", "Vikings: Valhalla",
+        "One Piece", "Avatar: The Last Airbender (Live Action)", "3 Body Problem", "The Gentlemen (Series)"
+    ] # Add more titles to reach closer to 200 or allow replacement
+
     sample_data = {
         'show_id': [f's{i}' for i in range(1, num_titles + 1)],
         'type': types_list,
-        'title': [f'Title {i}' for i in range(1, num_titles + 1)],  # Generic titles to avoid repetition
+        'title': np.random.choice(realistic_titles, num_titles, replace=True), # Use realistic titles
         'director': np.random.choice([
             'Martin Scorsese', 'Steven Spielberg', 'Christopher Nolan', 'Quentin Tarantino',
             'Alfred Hitchcock', 'Stanley Kubrick', 'Greta Gerwig', 'Bong Joon-ho', 'Akira Kurosawa',
