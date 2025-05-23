@@ -643,11 +643,20 @@ with st.expander("🔑 Tool 26: Keyword Search in Titles"):
 
 # Tool 27: Content Rating vs. IMDb Score Analysis
 with st.expander("🔞 Tool 27: Content Rating vs. IMDb Score Analysis"):
-    if 'rating' in df.columns and 'imdb_score' in df.columns:
+    if 'rating' in df.columns and 'imdb_score' in df.columns: # Checks if both columns are initially present
         st.subheader("Average IMDb Score by Content Rating")
-        avg_score_by_rating = df.groupby('rating')['imdb_score'].mean().sort_values(ascending=False).reset_index()
         
-        if not avg_score_by_rating.empty:
+        df_tool27 = df.copy()
+        # Ensure 'imdb_score' is numeric. If not, it becomes NaN.
+        df_tool27['imdb_score'] = pd.to_numeric(df_tool27['imdb_score'], errors='coerce')
+        
+        # Drop rows where 'rating' or 'imdb_score' (after conversion) is NaN
+        df_tool27.dropna(subset=['rating', 'imdb_score'], inplace=True)
+
+        if not df_tool27.empty: # Check if there's data left after cleaning
+            avg_score_by_rating = df_tool27.groupby('rating')['imdb_score'].mean().sort_values(ascending=False).reset_index()
+            
+            if not avg_score_by_rating.empty: # Check if groupby operation yielded results
             fig_rating_score = px.bar(avg_score_by_rating, x='rating', y='imdb_score',
                                       title="Average IMDb Score for Each Content Rating",
                                       labels={'rating': 'Content Rating', 'imdb_score': 'Average IMDb Score'},
@@ -655,14 +664,20 @@ with st.expander("🔞 Tool 27: Content Rating vs. IMDb Score Analysis"):
             st.plotly_chart(fig_rating_score, use_container_width=True)
 
             st.subheader("IMDb Score Distribution by Rating (Box Plot)")
-            fig_box_rating_score = px.box(df, x='rating', y='imdb_score', color='rating',
+                fig_box_rating_score = px.box(df_tool27, x='rating', y='imdb_score', color='rating',
                                           title="IMDb Score Distribution by Content Rating",
                                           labels={'rating': 'Content Rating', 'imdb_score': 'IMDb Score'})
             st.plotly_chart(fig_box_rating_score, use_container_width=True)
         else:
-            st.write("Not enough data to analyze IMDb score by rating.")
-    else:
-        st.info("'rating' and/or 'imdb_score' columns not available for this analysis.")
+                st.write("Not enough valid data to analyze IMDb score by rating after filtering.")
+        else:
+            st.write("No valid data for 'rating' and 'imdb_score' columns found after attempting to clean 'imdb_score'.")
+    elif 'rating' in df.columns and 'imdb_score' not in df.columns:
+        st.info("The 'imdb_score' column is missing, which is required for this analysis. Please ensure your dataset includes it.")
+    elif 'imdb_score' in df.columns and 'rating' not in df.columns:
+        st.info("The 'rating' column is missing, which is required for this analysis. Please ensure your dataset includes it.")
+    else: # Neither column is present
+        st.info("Both 'rating' and 'imdb_score' columns are missing and required for this analysis.")
 
 # Tool 28: Top Director-Actor Pairs
 with st.expander("🤝 Tool 28: Top Director-Actor Collaborations"):
