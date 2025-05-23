@@ -136,13 +136,14 @@ def load_sample_netflix_data():
     ]
     # More realistic titles
     realistic_titles = [
+        # Existing Titles
         "Stranger Things", "The Crown", "Bridgerton", "Money Heist", "The Witcher", "Ozark", "Narcos",
         "Black Mirror", "Squid Game", "Lupin", "Emily in Paris", "The Queen's Gambit", "Dark",
         "You", "Sex Education", "Cobra Kai", "Outer Banks", "Never Have I Ever", "Lucifer", "Elite",
         "The Umbrella Academy", "Dead to Me", "Russian Doll", "Mindhunter", "Peaky Blinders",
         "Extraction", "The Irishman", "Bird Box", "Roma", "Marriage Story", "The Platform", "Enola Holmes",
         "Project Power", "The Old Guard", "Spenser Confidential", "6 Underground", "Murder Mystery",
-        "The Kissing Booth", "To All the Boys I've Loved Before", "Always Be My Maybe", "Set It Up",
+        "The Kissing Booth", "To All the Boys I've Loved Before", "Always Be My Maybe", "Set It Up", # Approx 40
         "The Social Dilemma", "My Octopus Teacher", "American Factory", "Tiger King", "Making a Murderer",
         "Chef's Table", "Our Planet", "Explained", "Unorthodox", "When They See Us", "The Haunting of Hill House",
         "Midnight Mass", "Maid", "Clickbait", "Behind Her Eyes", "Shadow and Bone", "Sweet Tooth",
@@ -151,7 +152,7 @@ def load_sample_netflix_data():
         "The Great British Baking Show", "Anne with an E", "Atypical", "BoJack Horseman", "Big Mouth",
         "The Dragon Prince", "She-Ra and the Princesses of Power", "Hilda", "Klaus", "Over the Moon",
         "The Mitchells vs. the Machines", "Vivo", "Wish Dragon", "I Lost My Body", "The Willoughbys",
-        "Next Gen", "Fear Street Trilogy", "Army of the Dead", "The Midnight Sky", "Don't Look Up",
+        "Next Gen", "Fear Street Trilogy", "Army of the Dead", "The Midnight Sky", "Don't Look Up", # Approx 100
         "Red Notice", "The Adam Project", "The Gray Man", "Glass Onion: A Knives Out Mystery", "Hustle",
         "The Sea Beast", "Slumberland", "Guillermo del Toro's Pinocchio", "Matilda the Musical",
         "All Quiet on the Western Front", "Blonde", "White Noise", "The Pale Blue Eye", "You People",
@@ -160,8 +161,33 @@ def load_sample_netflix_data():
         "Rebel Moon: Part One – A Child of Fire", "Lift", "Damsel", "Spaceman", "Irish Wish",
         "Wednesday", "The Diplomat", "The Night Agent", "Beef", "Queen Charlotte: A Bridgerton Story",
         "XO, Kitty", "FUBAR", "Glamorous", "The Lincoln Lawyer", "Manifest", "Vikings: Valhalla",
-        "One Piece", "Avatar: The Last Airbender (Live Action)", "3 Body Problem", "The Gentlemen (Series)"
-    ] # Add more titles to reach closer to 200 or allow replacement
+        "One Piece", "Avatar: The Last Airbender (Live Action)", "3 Body Problem", "The Gentlemen (Series)", # Approx 140
+        # Adding ~100 more diverse titles
+        "Breaking Bad", "Game of Thrones", "Friends", "The Office (US)", "Parks and Recreation", "Seinfeld",
+        "The Sopranos", "The Wire", "Chernobyl", "Band of Brothers", "Planet Earth II", "Blue Planet II",
+        "Cosmos: A Spacetime Odyssey", "Rick and Morty", "Attack on Titan", "Death Note", "Fullmetal Alchemist: Brotherhood",
+        "Cowboy Bebop", "Avatar: The Last Airbender (Animated)", "The Legend of Korra", "Sherlock", "Doctor Who",
+        "Better Call Saul", "Fargo", "True Detective", "Westworld", "The Mandalorian", "Ted Lasso", "Succession",
+        "The Boys", "Invincible", "Arcane", "Cyberpunk: Edgerunners", "Blue Eye Samurai", "The Bear", "Severance",
+        "Yellowjackets", "House of the Dragon", "The Last of Us (Series)", "Andor", "Loki", "WandaVision",
+        "The Simpsons", "South Park", "Family Guy", "Bob's Burgers", "Futurama", "King of the Hill",
+        "Pulp Fiction", "The Shawshank Redemption", "The Dark Knight", "Forrest Gump", "Inception", "The Matrix",
+        "Goodfellas", "Fight Club", "The Lord of the Rings: The Fellowship of the Ring", "Spirited Away", "Parasite",
+        "Interstellar", "Gladiator", "Saving Private Ryan", "The Green Mile", "City of God", "Amelie",
+        "Pan's Labyrinth", "Oldboy (2003)", "A Separation", "The Lives of Others", "Train to Busan", "Shoplifters",
+        "Portrait of a Lady on Fire", "Everything Everywhere All at Once", "CODA", "Nomadland", "Drive My Car",
+        "Dune (2021)", "Blade Runner 2049", "Mad Max: Fury Road", "Whiplash", "La La Land", "Get Out",
+        "Moonlight", "Lady Bird", "Little Women (2019)", "The Grand Budapest Hotel", "Her", "Ex Machina",
+        "Arrival", "Sicario", "Hell or High Water", "Knives Out", "Once Upon a Time in Hollywood", "Joker",
+        "1917", "Tenet", "The Batman", "Top Gun: Maverick", "Oppenheimer", "Barbie", "Poor Things",
+        "Killers of the Flower Moon", "Anatomy of a Fall", "The Holdovers", "Past Lives", "Spider-Man: Into the Spider-Verse",
+        "Spider-Man: Across the Spider-Verse", "The Boy and the Heron", "Howl's Moving Castle", "Princess Mononoke",
+        "Your Name.", "Weathering with You", "A Silent Voice", "Grave of the Fireflies", "Perfect Blue",
+        "The Handmaiden", "Memories of Murder", "Burning", "Minari", "Sound of Metal", "Another Round",
+        "The Father", "Judas and the Black Messiah", "Promising Young Woman", "Nomadland", "The Power of the Dog",
+        "Drive", "Lost in Translation", "Eternal Sunshine of the Spotless Mind", "No Country for Old Men",
+        "There Will Be Blood", "The Social Network", "Zodiac", "Inglourious Basterds", "Django Unchained" # Added ~110 more
+    ]
 
     sample_data = {
         'show_id': [f's{i}' for i in range(1, num_titles + 1)],
