@@ -321,7 +321,7 @@ with st.expander("🤖 Tool 14: AI-Powered Insights"):
             """
             
             try:
-                model = genai.GenerativeModel("gemini-2.0-flash-exp")
+                model = genai.GenerativeModel("gemini-2.0-flash")
                 response = model.generate_content(prompt)
                 st.write(response.text)
             except Exception as e:
@@ -505,7 +505,7 @@ with st.expander("💬 Tool 21: AI Chat with Dataset"):
                     
                     Answer:
                     """
-                    model = genai.GenerativeModel("gemini-pro") # Using gemini-pro as it's good for chat
+                    model = genai.GenerativeModel("gemini-2.0-flash") 
                     response = model.generate_content(prompt)
                     st.markdown(response.text)
                 except Exception as e:
