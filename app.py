@@ -29,7 +29,13 @@ def load_sample_netflix_data():
                  'Wild Wild Country', 'Our Planet', 'Chef\'s Table', 'The Movies That Made Us', 'High Score', 'The Social Dilemma', 'My Octopus Teacher',
                  'American Factory', 'Icarus', 'Won\'t You Be My Neighbor?', 'RBG', 'Free Solo', 'The Great Hack', 'Explained', 'Abstract', 'Salt Fat Acid Heat',
                  'Ugly Delicious', 'Street Food', 'The Mind, Explained', 'Sex Education', 'Elite', 'Cable Girls', 'Money Heist: Korea'],
-        'director': ['Baran bo Odar', 'The Duffer Brothers', 'Martin Scorsese', 'Álex Pina', 'Susanne Bier'] * 10,
+        'director': ['Baran bo Odar', 'The Duffer Brothers', 'Martin Scorsese', 'Álex Pina', 'Susanne Bier',
+                     'Alfonso Cuarón', 'Peter Morgan', 'Sam Hargrave', 'Bill Dubuque', 'Galder Gaztelu-Urrutia'] * 5, # Adjusted for 50 titles
+        'cast': [
+            'Louis Hofmann, Karoline Eichhorn, Lisa Vicari', 'Millie Bobby Brown, Finn Wolfhard, Winona Ryder', 'Robert De Niro, Al Pacino, Joe Pesci',
+            'Úrsula Corberó, Álvaro Morte, Itziar Ituño', 'Sandra Bullock, Trevante Rhodes, John Malkovich',
+            'Yalitza Aparicio, Marina de Tavira, Fernando Grediaga', 'Olivia Colman, Tobias Menzies, Helena Bonham Carter', 'Chris Hemsworth, Rudhraksh Jaiswal, Randeep Hooda',
+            'Jason Bateman, Laura Linney, Sofia Hublitz', 'Iván Massagué, Zorion Eguileor, Antonia San Juan'] * 5, # 50 cast entries
         'country': ['Germany', 'United States', 'United States', 'Spain', 'United States', 'Mexico', 'United Kingdom', 'United States', 'United States', 'Spain'] * 5,
         'release_year': [2017, 2016, 2019, 2017, 2018, 2018, 2016, 2020, 2017, 2019, 2015, 2011, 2019, 2013, 2013, 2017, 2008, 2015, 2005, 1994,
                         2021, 2021, 2020, 2020, 2020, 2020, 2015, 2018, 2019, 2017, 2019, 2020, 2020, 2020, 2019, 2017, 2018, 2018, 2018, 2019,
@@ -38,7 +44,8 @@ def load_sample_netflix_data():
         'duration': ['1 Season', '4 Seasons', '209 min', '4 Seasons', '124 min', '135 min', '6 Seasons', '116 min', '4 Seasons', '94 min'] * 5,
         'listed_in': ['Crime TV Shows, International TV Shows, TV Dramas', 'TV Horror, TV Sci-Fi & Fantasy, TV Thrillers', 'Crime Movies, Dramas', 
                      'Crime TV Shows, International TV Shows, Spanish-Language TV Shows', 'Horror Movies, Sci-Fi Movies, Thrillers'] * 10,
-        'imdb_score': np.random.uniform(6.0, 9.5, 50).round(1),
+        'imdb_score': np.clip(np.random.normal(7.5, 0.8, 50), 4.0, 9.8).round(1), # More realistic IMDb scores
+        'date_added': pd.to_datetime([f'{np.random.randint(2015, 2023)}-{np.random.randint(1,13):02d}-{np.random.randint(1,29):02d}' for _ in range(50)]),
         'budget_millions': np.random.uniform(10, 200, 50).round(1),
         'views_millions': np.random.uniform(50, 500, 50).round(1)
     }
@@ -392,6 +399,76 @@ with st.expander("🔄 Tool 18: Content Type Evolution Over Time"):
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("Release year and/or type information not available for this analysis.")
+
+# Tool 19: Actor/Cast Performance Analysis
+with st.expander("🎭 Tool 19: Actor/Cast Performance Analysis"):
+    if 'cast' in df.columns and 'title' in df.columns:
+        st.subheader("Actor/Cast Analysis")
+        
+        # Explode cast members for individual analysis
+        # Ensure 'cast' is string and handle potential NaNs before splitting
+        df_cast = df.dropna(subset=['cast'])
+        if not df_cast.empty:
+            actor_list = df_cast.assign(actor=df_cast['cast'].str.split(', ')).explode('actor')
+            actor_list['actor'] = actor_list['actor'].str.strip() # Clean up actor names
+
+            # Top actors by number of titles
+            actor_counts = actor_list['actor'].value_counts().head(10)
+            if not actor_counts.empty:
+                fig_actor_titles = px.bar(actor_counts, x=actor_counts.index, y=actor_counts.values,
+                                          labels={'x': 'Actor', 'y': 'Number of Titles'},
+                                          title="Top 10 Actors by Number of Titles Appeared In")
+                st.plotly_chart(fig_actor_titles, use_container_width=True)
+            else:
+                st.write("Not enough data for actor title count analysis.")
+
+            # Top actors by average IMDb score
+            if 'imdb_score' in df.columns:
+                # Consider actors with at least 2 appearances for score analysis
+                actor_title_counts = actor_list['actor'].value_counts()
+                actors_for_score_analysis = actor_title_counts[actor_title_counts >= 1].index # Lowered to 1 for sample data
+                
+                if not actors_for_score_analysis.empty:
+                    avg_score_by_actor = actor_list[actor_list['actor'].isin(actors_for_score_analysis)].groupby('actor')['imdb_score'].mean().sort_values(ascending=False).head(10)
+                    if not avg_score_by_actor.empty:
+                        fig_actor_score = px.bar(avg_score_by_actor, x=avg_score_by_actor.index, y=avg_score_by_actor.values,
+                                                 labels={'x': 'Actor', 'y': 'Average IMDb Score of Titles'},
+                                                 title="Top Actors by Average IMDb Score (min. 1 title)")
+                        st.plotly_chart(fig_actor_score, use_container_width=True)
+                    else:
+                        st.write("Could not calculate average IMDb scores for actors.")
+                else:
+                    st.write("Not enough data for actor IMDb score analysis (requires actors with >= 1 title).")
+        else:
+            st.write("No cast information available to analyze.")
+    else:
+        st.info("Cast, title, and/or IMDb score information not available for this analysis.")
+
+# Tool 20: Genre Deep Dive
+with st.expander("🔎 Tool 20: Genre Deep Dive"):
+    if 'listed_in' in df.columns and 'release_year' in df.columns and 'imdb_score' in df.columns and 'title' in df.columns:
+        all_genres = sorted(list(set(g.strip() for sublist in df['listed_in'].str.split(',') for g in sublist if g.strip())))
+        selected_genre = st.selectbox("Select a Genre for Deep Dive:", all_genres)
+
+        if selected_genre:
+            genre_df = df[df['listed_in'].str.contains(selected_genre, case=False, na=False)]
+            st.subheader(f"Deep Dive: {selected_genre}")
+
+            if not genre_df.empty:
+                st.metric(f"Titles in {selected_genre}", len(genre_df))
+                st.metric(f"Average IMDb Score for {selected_genre}", f"{genre_df['imdb_score'].mean():.2f}" if not genre_df['imdb_score'].empty else "N/A")
+
+                # Release trend for the selected genre
+                genre_release_trend = genre_df.groupby('release_year').size().reset_index(name='count')
+                fig_genre_trend = px.line(genre_release_trend, x='release_year', y='count', title=f"Release Trend for {selected_genre}")
+                st.plotly_chart(fig_genre_trend, use_container_width=True)
+
+                st.subheader(f"Top 5 Titles in {selected_genre} (by IMDb Score)")
+                st.dataframe(genre_df.nlargest(5, 'imdb_score')[['title', 'release_year', 'imdb_score', 'type']])
+            else:
+                st.write(f"No titles found for the genre: {selected_genre}")
+    else:
+        st.info("Required columns (listed_in, release_year, imdb_score, title) not available for Genre Deep Dive.")
 
 st.markdown("---")
 st.markdown("**Netflix Data Analytics Dashboard** - Comprehensive toolkit for data analysis capstone projects")
