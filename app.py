@@ -127,9 +127,16 @@ st.markdown("**Advanced Analytics Suite for Data Analyst Capstone Project**")
 def load_sample_netflix_data():
     """Create a more comprehensive Netflix dataset for analysis."""
     num_titles = 200  # Increased number of titles
+    # Generate 'type' data first
+    types_list = np.random.choice(['Movie', 'TV Show'], num_titles, p=[0.6, 0.4])
+    # Generate 'duration' based on the pre-generated 'types_list'
+    durations_list = [
+        f'{np.random.randint(60, 240)} min' if t == 'Movie' else f'{np.random.randint(1, 10)} Seasons'
+        for t in types_list
+    ]
     sample_data = {
         'show_id': [f's{i}' for i in range(1, num_titles + 1)],
-        'type': np.random.choice(['Movie', 'TV Show'], num_titles, p=[0.6, 0.4]),
+        'type': types_list,
         'title': [f'Title {i}' for i in range(1, num_titles + 1)],  # Generic titles to avoid repetition
         'director': np.random.choice([
             'Martin Scorsese', 'Steven Spielberg', 'Christopher Nolan', 'Quentin Tarantino',
@@ -149,10 +156,7 @@ def load_sample_netflix_data():
         'rating': np.random.choice([
             'G', 'PG', 'PG-13', 'R', 'NC-17', 'TV-Y', 'TV-Y7', 'TV-G', 'TV-PG', 'TV-14', 'TV-MA', 'UR'
         ], num_titles, p=[0.05, 0.08, 0.12, 0.15, 0.02, 0.05, 0.06, 0.07, 0.1, 0.1, 0.18, 0.02]),
-        'duration': [
-            f'{np.random.randint(60, 240)} min' if t == 'Movie' else f'{np.random.randint(1, 10)} Seasons'
-            for t in sample_data['type']
-        ],
+        'duration': durations_list,
         'listed_in': [', '.join(np.random.choice([
             'Dramas', 'Comedies', 'Action & Adventure', 'Horror Movies', 'Thrillers', 'Sci-Fi & Fantasy',
             'International Movies', 'Independent Movies', 'Romantic Movies', 'Documentaries', 'Crime Movies',
