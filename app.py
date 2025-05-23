@@ -125,35 +125,55 @@ st.markdown("**Advanced Analytics Suite for Data Analyst Capstone Project**")
 # Enhanced sample Netflix dataset
 @st.cache_data
 def load_sample_netflix_data():
-    """Create comprehensive Netflix dataset for analysis"""
+    """Create a more comprehensive Netflix dataset for analysis."""
+    num_titles = 200  # Increased number of titles
     sample_data = {
-        'show_id': [f's{i}' for i in range(1, 51)],
-        'type': ['Movie', 'TV Show'] * 25,
-        'title': ['Dark', 'Stranger Things', 'The Irishman', 'Money Heist', 'Bird Box', 'Roma', 'The Crown', 'Extraction', 'Ozark', 'The Platform',
-                 'Narcos', 'Black Mirror', 'The Witcher', 'Orange is the New Black', 'House of Cards', 'Mindhunter', 'Breaking Bad', 'Better Call Saul',
-                 'The Office', 'Friends', 'Squid Game', 'Lupin', 'Emily in Paris', 'Bridgerton', 'The Queen\'s Gambit', 'Tiger King', 'Making a Murderer',
-                 'Wild Wild Country', 'Our Planet', 'Chef\'s Table', 'The Movies That Made Us', 'High Score', 'The Social Dilemma', 'My Octopus Teacher',
-                 'American Factory', 'Icarus', 'Won\'t You Be My Neighbor?', 'RBG', 'Free Solo', 'The Great Hack', 'Explained', 'Abstract', 'Salt Fat Acid Heat',
-                 'Ugly Delicious', 'Street Food', 'The Mind, Explained', 'Sex Education', 'Elite', 'Cable Girls', 'Money Heist: Korea'],
-        'director': ['Baran bo Odar', 'The Duffer Brothers', 'Martin Scorsese', 'Álex Pina', 'Susanne Bier',
-                     'Alfonso Cuarón', 'Peter Morgan', 'Sam Hargrave', 'Bill Dubuque', 'Galder Gaztelu-Urrutia'] * 5, # Adjusted for 50 titles
-        'cast': [
-            'Louis Hofmann, Karoline Eichhorn, Lisa Vicari', 'Millie Bobby Brown, Finn Wolfhard, Winona Ryder', 'Robert De Niro, Al Pacino, Joe Pesci',
-            'Úrsula Corberó, Álvaro Morte, Itziar Ituño', 'Sandra Bullock, Trevante Rhodes, John Malkovich',
-            'Yalitza Aparicio, Marina de Tavira, Fernando Grediaga', 'Olivia Colman, Tobias Menzies, Helena Bonham Carter', 'Chris Hemsworth, Rudhraksh Jaiswal, Randeep Hooda',
-            'Jason Bateman, Laura Linney, Sofia Hublitz', 'Iván Massagué, Zorion Eguileor, Antonia San Juan'] * 5, # 50 cast entries
-        'country': ['Germany', 'United States', 'United States', 'Spain', 'United States', 'Mexico', 'United Kingdom', 'United States', 'United States', 'Spain'] * 5,
-        'release_year': [2017, 2016, 2019, 2017, 2018, 2018, 2016, 2020, 2017, 2019, 2015, 2011, 2019, 2013, 2013, 2017, 2008, 2015, 2005, 1994,
-                        2021, 2021, 2020, 2020, 2020, 2020, 2015, 2018, 2019, 2017, 2019, 2020, 2020, 2020, 2019, 2017, 2018, 2018, 2018, 2019,
-                        2018, 2017, 2017, 2019, 2019, 2019, 2019, 2017, 2017, 2021],
-        'rating': ['TV-14', 'TV-14', 'R', 'TV-MA', 'R', 'R', 'TV-MA', 'R', 'TV-MA', 'TV-MA'] * 5,
-        'duration': ['1 Season', '4 Seasons', '209 min', '4 Seasons', '124 min', '135 min', '6 Seasons', '116 min', '4 Seasons', '94 min'] * 5,
-        'listed_in': ['Crime TV Shows, International TV Shows, TV Dramas', 'TV Horror, TV Sci-Fi & Fantasy, TV Thrillers', 'Crime Movies, Dramas', 
-                     'Crime TV Shows, International TV Shows, Spanish-Language TV Shows', 'Horror Movies, Sci-Fi Movies, Thrillers'] * 10,
-        'imdb_score': np.clip(np.random.normal(7.5, 0.8, 50), 4.0, 9.8).round(1), # More realistic IMDb scores
-        'date_added': pd.to_datetime([f'{np.random.randint(2015, 2023)}-{np.random.randint(1,13):02d}-{np.random.randint(1,29):02d}' for _ in range(50)]),
-        'budget_millions': np.random.uniform(10, 200, 50).round(1),
-        'views_millions': np.random.uniform(50, 500, 50).round(1)
+        'show_id': [f's{i}' for i in range(1, num_titles + 1)],
+        'type': np.random.choice(['Movie', 'TV Show'], num_titles, p=[0.6, 0.4]),
+        'title': [f'Title {i}' for i in range(1, num_titles + 1)],  # Generic titles to avoid repetition
+        'director': np.random.choice([
+            'Martin Scorsese', 'Steven Spielberg', 'Christopher Nolan', 'Quentin Tarantino',
+            'Alfred Hitchcock', 'Stanley Kubrick', 'Greta Gerwig', 'Bong Joon-ho', 'Akira Kurosawa',
+            'Ingmar Bergman', 'Ridley Scott', 'Francis Ford Coppola', 'Pedro Almodóvar'
+        ], num_titles),
+        'cast': [', '.join(np.random.choice([
+            'Robert De Niro', 'Leonardo DiCaprio', 'Meryl Streep', 'Tom Hanks', 'Brad Pitt', 'Scarlett Johansson',
+            'Denzel Washington', 'Cate Blanchett', 'Morgan Freeman', 'Natalie Portman', 'Joaquin Phoenix',
+            'Kate Winslet', 'Samuel L. Jackson', 'Julia Roberts', 'Johnny Depp'
+        ], size=np.random.randint(2, 5), replace=False)) for _ in range(num_titles)],
+        'country': np.random.choice([
+            'United States', 'United Kingdom', 'Canada', 'India', 'South Korea', 'Japan', 'France', 'Spain',
+            'Germany', 'Mexico', 'Brazil', 'Australia', 'China', 'Italy', 'Argentina'
+        ], num_titles, p=[0.3, 0.15, 0.1, 0.1, 0.05, 0.05, 0.04, 0.04, 0.03, 0.03, 0.02, 0.02, 0.02, 0.02, 0.01]),
+        'release_year': np.random.randint(2000, 2024, num_titles),
+        'rating': np.random.choice([
+            'G', 'PG', 'PG-13', 'R', 'NC-17', 'TV-Y', 'TV-Y7', 'TV-G', 'TV-PG', 'TV-14', 'TV-MA', 'UR'
+        ], num_titles, p=[0.05, 0.08, 0.12, 0.15, 0.02, 0.05, 0.06, 0.07, 0.1, 0.1, 0.18, 0.02]),
+        'duration': [
+            f'{np.random.randint(60, 240)} min' if t == 'Movie' else f'{np.random.randint(1, 10)} Seasons'
+            for t in sample_data['type']
+        ],
+        'listed_in': [', '.join(np.random.choice([
+            'Dramas', 'Comedies', 'Action & Adventure', 'Horror Movies', 'Thrillers', 'Sci-Fi & Fantasy',
+            'International Movies', 'Independent Movies', 'Romantic Movies', 'Documentaries', 'Crime Movies',
+            'Kids\' TV', 'TV Dramas', 'TV Comedies', 'Reality TV', 'Anime Series', 'Spanish-Language TV Shows',
+            'Korean TV Shows', 'British TV Shows', 'TV Action & Adventure', 'Classic Movies', 'Cult Movies',
+            'LGBTQ Movies', 'Music & Musicals', 'Sports Movies', 'Faith & Spirituality', 'Teen TV Shows',
+            'Romantic TV Shows', 'Science & Nature TV', 'Stand-Up Comedy', 'Talk Shows', 'Variety & Game Shows'
+        ], size=np.random.randint(1, 4), replace=False)) for _ in range(num_titles)],
+        'imdb_score': np.clip(np.random.normal(6.5, 1.2, num_titles), 2.0, 9.5).round(1),
+        'date_added': pd.to_datetime([
+            f'{np.random.randint(2015, 2024)}-{np.random.randint(1, 13):02d}-{np.random.randint(1, 29):02d}'
+            for _ in range(num_titles)
+        ]),
+        'budget_millions': np.random.uniform(1, 300, num_titles).round(1),
+        'views_millions': np.random.uniform(1, 800, num_titles).round(1),
+        'awards_won': np.random.randint(0, 50, num_titles),  # Awards won
+        'nomination_for_best_picture': np.random.choice([0, 1], num_titles, p=[0.9, 0.1]), #Binary: 0 for No, 1 for Yes
+        'nominations': np.random.randint(0, 100, num_titles), # Number of nominations
+        'language': np.random.choice(['English', 'Spanish', 'French', 'German', 'Korean', 'Japanese', 'Hindi', 'Italian', 'Mandarin', 'Portuguese'], num_titles, p=[0.6, 0.1, 0.08, 0.05, 0.04, 0.03, 0.03, 0.02, 0.02, 0.03]),  # Language
+        'aspect_ratio': np.random.choice(['16:9', '2.39:1', '4:3', '1.85:1'], num_titles), # Aspect Ratio
+        'sound_mix': np.random.choice(['Dolby Digital', 'Dolby Atmos', 'Stereo', 'Mono'], num_titles), # Sound Mix
     }
     return pd.DataFrame(sample_data)
 
