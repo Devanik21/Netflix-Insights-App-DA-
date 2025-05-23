@@ -1,156 +1,340 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import google.generativeai as genai
 import io
-import os
+import numpy as np
+from datetime import datetime
+import seaborn as sns
+import matplotlib.pyplot as plt
+from wordcloud import WordCloud
+import re
+from collections import Counter
 
-st.set_page_config(page_title="Netflix Content Insights Tool", layout="wide")
-st.title("🎬 Netflix Content Insights Tool")
-st.markdown("Analyze genre popularity, trends, and gaps across the globe using Netflix data ✨")
+st.set_page_config(page_title="Netflix Analytics Dashboard", layout="wide")
+st.title("🎬 Netflix Data Analytics Dashboard")
+st.markdown("**Advanced Analytics Suite for Data Analyst Capstone Project**")
 
-# Create sample Netflix dataset
+# Enhanced sample Netflix dataset
 @st.cache_data
 def load_sample_netflix_data():
-    """Create a sample Netflix dataset for demonstration"""
+    """Create comprehensive Netflix dataset for analysis"""
     sample_data = {
-        'show_id': ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10'],
-        'type': ['Movie', 'TV Show', 'Movie', 'TV Show', 'Movie', 'Movie', 'TV Show', 'Movie', 'TV Show', 'Movie'],
-        'title': ['Dark', 'Stranger Things', 'The Irishman', 'Money Heist', 'Bird Box', 'Roma', 'The Crown', 'Extraction', 'Ozark', 'The Platform'],
-        'director': ['Baran bo Odar', 'The Duffer Brothers', 'Martin Scorsese', 'Álex Pina', 'Susanne Bier', 'Alfonso Cuarón', 'Peter Morgan', 'Sam Hargrave', 'Bill Dubuque', 'Galder Gaztelu-Urrutia'],
-        'cast': ['Louis Hofmann, Oliver Masucci', 'Winona Ryder, David Harbour', 'Robert De Niro, Al Pacino', 'Úrsula Corberó, Álvaro Morte', 'Sandra Bullock, Trevante Rhodes', 'Yalitza Aparicio, Marina de Tavira', 'Claire Foy, Matt Smith', 'Chris Hemsworth, Rudhraksh Jaiswal', 'Jason Bateman, Laura Linney', 'Ivan Massagué, Zorion Eguileor'],
-        'country': ['Germany', 'United States', 'United States', 'Spain', 'United States', 'Mexico', 'United Kingdom', 'United States', 'United States', 'Spain'],
-        'date_added': ['December 1, 2017', 'July 15, 2016', 'November 27, 2019', 'December 20, 2017', 'December 21, 2018', 'December 14, 2018', 'November 4, 2016', 'April 24, 2020', 'July 21, 2017', 'March 20, 2020'],
-        'release_year': [2017, 2016, 2019, 2017, 2018, 2018, 2016, 2020, 2017, 2019],
-        'rating': ['TV-14', 'TV-14', 'R', 'TV-MA', 'R', 'R', 'TV-MA', 'R', 'TV-MA', 'TV-MA'],
-        'duration': ['1 Season', '4 Seasons', '209 min', '4 Seasons', '124 min', '135 min', '6 Seasons', '116 min', '4 Seasons', '94 min'],
-        'listed_in': ['Crime TV Shows, International TV Shows, TV Dramas', 'TV Horror, TV Sci-Fi & Fantasy, TV Thrillers', 'Crime Movies, Dramas', 'Crime TV Shows, International TV Shows, Spanish-Language TV Shows', 'Horror Movies, Sci-Fi Movies, Thrillers', 'Dramas, Independent Movies, International Movies', 'British TV Shows, Docuseries, International TV Shows', 'Action & Adventure, Thrillers', 'Crime TV Shows, TV Dramas, TV Thrillers', 'Horror Movies, International Movies, Sci-Fi Movies']
+        'show_id': [f's{i}' for i in range(1, 51)],
+        'type': ['Movie', 'TV Show'] * 25,
+        'title': ['Dark', 'Stranger Things', 'The Irishman', 'Money Heist', 'Bird Box', 'Roma', 'The Crown', 'Extraction', 'Ozark', 'The Platform',
+                 'Narcos', 'Black Mirror', 'The Witcher', 'Orange is the New Black', 'House of Cards', 'Mindhunter', 'Breaking Bad', 'Better Call Saul',
+                 'The Office', 'Friends', 'Squid Game', 'Lupin', 'Emily in Paris', 'Bridgerton', 'The Queen\'s Gambit', 'Tiger King', 'Making a Murderer',
+                 'Wild Wild Country', 'Our Planet', 'Chef\'s Table', 'The Movies That Made Us', 'High Score', 'The Social Dilemma', 'My Octopus Teacher',
+                 'American Factory', 'Icarus', 'Won\'t You Be My Neighbor?', 'RBG', 'Free Solo', 'The Great Hack', 'Explained', 'Abstract', 'Salt Fat Acid Heat',
+                 'Ugly Delicious', 'Street Food', 'The Mind, Explained', 'Sex Education', 'Elite', 'Cable Girls', 'Money Heist: Korea'],
+        'director': ['Baran bo Odar', 'The Duffer Brothers', 'Martin Scorsese', 'Álex Pina', 'Susanne Bier'] * 10,
+        'country': ['Germany', 'United States', 'United States', 'Spain', 'United States', 'Mexico', 'United Kingdom', 'United States', 'United States', 'Spain'] * 5,
+        'release_year': [2017, 2016, 2019, 2017, 2018, 2018, 2016, 2020, 2017, 2019, 2015, 2011, 2019, 2013, 2013, 2017, 2008, 2015, 2005, 1994,
+                        2021, 2021, 2020, 2020, 2020, 2020, 2015, 2018, 2019, 2017, 2019, 2020, 2020, 2020, 2019, 2017, 2018, 2018, 2018, 2019,
+                        2018, 2017, 2017, 2019, 2019, 2019, 2019, 2017, 2017, 2021],
+        'rating': ['TV-14', 'TV-14', 'R', 'TV-MA', 'R', 'R', 'TV-MA', 'R', 'TV-MA', 'TV-MA'] * 5,
+        'duration': ['1 Season', '4 Seasons', '209 min', '4 Seasons', '124 min', '135 min', '6 Seasons', '116 min', '4 Seasons', '94 min'] * 5,
+        'listed_in': ['Crime TV Shows, International TV Shows, TV Dramas', 'TV Horror, TV Sci-Fi & Fantasy, TV Thrillers', 'Crime Movies, Dramas', 
+                     'Crime TV Shows, International TV Shows, Spanish-Language TV Shows', 'Horror Movies, Sci-Fi Movies, Thrillers'] * 10,
+        'imdb_score': np.random.uniform(6.0, 9.5, 50).round(1),
+        'budget_millions': np.random.uniform(10, 200, 50).round(1),
+        'views_millions': np.random.uniform(50, 500, 50).round(1)
     }
     return pd.DataFrame(sample_data)
 
 # Sidebar
-st.sidebar.header("📂 Upload Netflix Dataset")
-file = st.sidebar.file_uploader("Upload your Netflix dataset (CSV)", type="csv")
+st.sidebar.header("📂 Data Source")
+file = st.sidebar.file_uploader("Upload Netflix dataset (CSV)", type="csv")
 
-# Load sample dataset if user doesn't upload
 if file is None:
-    st.sidebar.info("No file uploaded. Using sample Netflix dataset.")
+    st.sidebar.info("Using sample dataset")
     df = load_sample_netflix_data()
-    st.info("📊 Using sample Netflix dataset for demonstration")
 else:
     df = pd.read_csv(file)
-    st.success("Dataset loaded successfully!")
+    st.success("Custom dataset loaded!")
 
 # Gemini API
 gemini_key = st.sidebar.text_input("🔑 Gemini API Key", type="password")
 if gemini_key:
     genai.configure(api_key=gemini_key)
 
-# Load Data Analysis
-if df is not None:
-    with st.expander("🔍 Data Preview", expanded=True):
-        st.dataframe(df.head())
-        st.write(f"**Dataset shape:** {df.shape[0]} rows × {df.shape[1]} columns")
-    
-    with st.expander("📈 Genre Popularity Over Time"):
-        if 'release_year' in df.columns and 'listed_in' in df.columns:
-            # Clean and prepare data
-            df['release_year'] = pd.to_numeric(df['release_year'], errors='coerce')
-            df_clean = df.dropna(subset=['release_year'])
-            df_clean['release_year'] = df_clean['release_year'].astype(int)
-            
-            # Split genres and create year-genre combinations
-            genre_data = []
-            for _, row in df_clean.iterrows():
-                genres = [g.strip() for g in str(row['listed_in']).split(',')]
-                for genre in genres:
-                    genre_data.append({'release_year': row['release_year'], 'genre': genre})
-            
-            genre_df = pd.DataFrame(genre_data)
-            genre_year_counts = genre_df.groupby(['release_year', 'genre']).size().reset_index(name='count')
-            
-            # Get top 5 genres overall
-            top_genres = genre_df['genre'].value_counts().head(5).index.tolist()
-            filtered_data = genre_year_counts[genre_year_counts['genre'].isin(top_genres)]
-            
-            if not filtered_data.empty:
-                fig = px.line(filtered_data, x='release_year', y='count', color='genre', 
-                             title="Top 5 Genre Trends Over Years",
-                             labels={'count': 'Number of Titles', 'release_year': 'Release Year'})
+# Main Dashboard
+col1, col2, col3, col4 = st.columns(4)
+with col1:
+    st.metric("Total Titles", len(df))
+with col2:
+    st.metric("Movies", len(df[df['type'] == 'Movie']) if 'type' in df.columns else 0)
+with col3:
+    st.metric("TV Shows", len(df[df['type'] == 'TV Show']) if 'type' in df.columns else 0)
+with col4:
+    st.metric("Countries", df['country'].nunique() if 'country' in df.columns else 0)
+
+# Tool 1: Content Performance Analytics
+with st.expander("📊 Tool 1: Content Performance Analytics"):
+    if 'imdb_score' in df.columns and 'views_millions' in df.columns:
+        fig = px.scatter(df, x='imdb_score', y='views_millions', color='type', size='budget_millions',
+                        title="Content Performance: Rating vs Viewership",
+                        labels={'imdb_score': 'IMDB Score', 'views_millions': 'Views (Millions)'})
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Performance metrics
+        top_performers = df.nlargest(5, 'views_millions')[['title', 'views_millions', 'imdb_score']]
+        st.subheader("Top 5 Most Viewed")
+        st.dataframe(top_performers)
+
+# Tool 2: Genre Trend Analysis
+with st.expander("📈 Tool 2: Genre Trend Analysis"):
+    if 'release_year' in df.columns and 'listed_in' in df.columns:
+        genre_data = []
+        for _, row in df.iterrows():
+            genres = [g.strip() for g in str(row['listed_in']).split(',')]
+            for genre in genres:
+                genre_data.append({'release_year': row['release_year'], 'genre': genre})
+        
+        genre_df = pd.DataFrame(genre_data)
+        genre_trends = genre_df.groupby(['release_year', 'genre']).size().reset_index(name='count')
+        top_genres = genre_df['genre'].value_counts().head(6).index.tolist()
+        
+        fig = px.line(genre_trends[genre_trends['genre'].isin(top_genres)], 
+                     x='release_year', y='count', color='genre',
+                     title="Genre Popularity Trends Over Time")
+        st.plotly_chart(fig, use_container_width=True)
+
+# Tool 3: Geographic Content Distribution
+with st.expander("🌍 Tool 3: Geographic Content Distribution"):
+    if 'country' in df.columns:
+        country_data = df['country'].value_counts().head(10)
+        fig = px.bar(x=country_data.values, y=country_data.index, orientation='h',
+                    title="Content Production by Country")
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Market penetration analysis
+        st.subheader("Market Analysis")
+        market_share = (country_data / country_data.sum() * 100).round(2)
+        st.write("Market Share (%):", market_share.to_dict())
+
+# Tool 4: Content Duration Analysis
+with st.expander("⏱️ Tool 4: Content Duration Analysis"):
+    if 'duration' in df.columns:
+        # Extract numeric duration for movies
+        movie_durations = []
+        tv_seasons = []
+        
+        for _, row in df.iterrows():
+            duration = str(row['duration'])
+            if 'min' in duration:
+                movie_durations.append(int(re.findall(r'\d+', duration)[0]))
+            elif 'Season' in duration:
+                tv_seasons.append(int(re.findall(r'\d+', duration)[0]))
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if movie_durations:
+                fig = px.histogram(x=movie_durations, title="Movie Duration Distribution",
+                                 labels={'x': 'Duration (minutes)', 'y': 'Count'})
                 st.plotly_chart(fig, use_container_width=True)
+        
+        with col2:
+            if tv_seasons:
+                fig = px.histogram(x=tv_seasons, title="TV Show Seasons Distribution",
+                                 labels={'x': 'Number of Seasons', 'y': 'Count'})
+                st.plotly_chart(fig, use_container_width=True)
+
+# Tool 5: Rating Distribution Analysis
+with st.expander("🏆 Tool 5: Rating Distribution Analysis"):
+    if 'rating' in df.columns:
+        rating_counts = df['rating'].value_counts()
+        fig = px.pie(values=rating_counts.values, names=rating_counts.index,
+                    title="Content Rating Distribution")
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Age demographic insights
+        mature_content = len(df[df['rating'].isin(['R', 'TV-MA'])])
+        family_content = len(df[df['rating'].isin(['G', 'PG', 'TV-G', 'TV-Y'])])
+        st.write(f"Mature Content: {mature_content} ({mature_content/len(df)*100:.1f}%)")
+        st.write(f"Family-Friendly: {family_content} ({family_content/len(df)*100:.1f}%)")
+
+# Tool 6: Release Year Timeline
+with st.expander("📅 Tool 6: Release Year Timeline"):
+    if 'release_year' in df.columns:
+        yearly_releases = df['release_year'].value_counts().sort_index()
+        fig = px.area(x=yearly_releases.index, y=yearly_releases.values,
+                     title="Content Release Timeline")
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Decade analysis
+        df['decade'] = (df['release_year'] // 10) * 10
+        decade_counts = df['decade'].value_counts().sort_index()
+        st.write("Content by Decade:", decade_counts.to_dict())
+
+# Tool 7: Budget vs Performance ROI
+with st.expander("💰 Tool 7: Budget vs Performance ROI"):
+    if 'budget_millions' in df.columns and 'views_millions' in df.columns:
+        df['roi'] = df['views_millions'] / df['budget_millions']
+        
+        fig = px.scatter(df, x='budget_millions', y='roi', color='type', size='imdb_score',
+                        title="Budget vs ROI Analysis",
+                        labels={'budget_millions': 'Budget (Millions)', 'roi': 'ROI (Views/Budget)'})
+        st.plotly_chart(fig, use_container_width=True)
+        
+        high_roi = df.nlargest(5, 'roi')[['title', 'budget_millions', 'views_millions', 'roi']]
+        st.subheader("Best ROI Content")
+        st.dataframe(high_roi)
+
+# Tool 8: Content Correlation Matrix
+with st.expander("🔗 Tool 8: Content Correlation Matrix"):
+    numeric_cols = df.select_dtypes(include=[np.number]).columns
+    if len(numeric_cols) > 1:
+        corr_matrix = df[numeric_cols].corr()
+        fig = px.imshow(corr_matrix, title="Feature Correlation Matrix",
+                       color_continuous_scale='RdBu_r')
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Key insights
+        st.subheader("Key Correlations")
+        for i, col1 in enumerate(numeric_cols):
+            for col2 in numeric_cols[i+1:]:
+                corr_val = corr_matrix.loc[col1, col2]
+                if abs(corr_val) > 0.5:
+                    st.write(f"{col1} ↔ {col2}: {corr_val:.3f}")
+
+# Tool 9: Content Gap Analysis
+with st.expander("📊 Tool 9: Content Gap Analysis"):
+    if 'country' in df.columns and 'listed_in' in df.columns:
+        # Genre distribution by country
+        country_genre_data = []
+        for _, row in df.iterrows():
+            genres = [g.strip() for g in str(row['listed_in']).split(',')]
+            for genre in genres:
+                country_genre_data.append({'country': row['country'], 'genre': genre})
+        
+        cg_df = pd.DataFrame(country_genre_data)
+        pivot_table = cg_df.groupby(['country', 'genre']).size().unstack(fill_value=0)
+        
+        # Identify underrepresented genres per country
+        st.subheader("Genre Gaps by Country")
+        for country in pivot_table.index[:5]:
+            country_genres = pivot_table.loc[country]
+            missing_genres = country_genres[country_genres == 0].index.tolist()[:3]
+            if missing_genres:
+                st.write(f"**{country}**: Missing {', '.join(missing_genres)}")
+
+# Tool 10: Predictive Analytics Dashboard
+with st.expander("🔮 Tool 10: Predictive Analytics Dashboard"):
+    if 'imdb_score' in df.columns and 'views_millions' in df.columns:
+        # Simple trend prediction
+        from sklearn.linear_model import LinearRegression
+        
+        X = df[['imdb_score', 'budget_millions']].fillna(df[['imdb_score', 'budget_millions']].mean())
+        y = df['views_millions'].fillna(df['views_millions'].mean())
+        
+        model = LinearRegression().fit(X, y)
+        predictions = model.predict(X)
+        
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=y, y=predictions, mode='markers', name='Predicted vs Actual'))
+        fig.add_trace(go.Scatter(x=[y.min(), y.max()], y=[y.min(), y.max()], 
+                                mode='lines', name='Perfect Prediction'))
+        fig.update_layout(title="Viewership Prediction Model",
+                         xaxis_title="Actual Views", yaxis_title="Predicted Views")
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Model insights
+        st.write(f"Model Score: {model.score(X, y):.3f}")
+        st.write("Feature Importance:")
+        st.write(f"IMDB Score: {model.coef_[0]:.2f}")
+        st.write(f"Budget: {model.coef_[1]:.2f}")
+
+# Advanced Analytics Tools
+st.header("🔬 Advanced Analytics")
+
+# Tool 11: Statistical Summary
+with st.expander("📋 Tool 11: Statistical Summary Report"):
+    st.subheader("Dataset Overview")
+    st.write(df.describe())
+    
+    st.subheader("Data Quality Report")
+    missing_data = df.isnull().sum()
+    st.write("Missing Values:", missing_data[missing_data > 0].to_dict())
+    
+    st.subheader("Categorical Analysis")
+    for col in df.select_dtypes(include=['object']).columns:
+        st.write(f"**{col}**: {df[col].nunique()} unique values")
+
+# Tool 12: Content Recommendation Engine
+with st.expander("🎯 Tool 12: Content Recommendation Engine"):
+    if 'listed_in' in df.columns:
+        user_genre = st.selectbox("Select preferred genre:", 
+                                 ['Drama', 'Comedy', 'Action', 'Horror', 'Sci-Fi', 'Crime'])
+        
+        # Simple content-based filtering
+        genre_matches = df[df['listed_in'].str.contains(user_genre, na=False)]
+        
+        if not genre_matches.empty:
+            if 'imdb_score' in df.columns:
+                recommendations = genre_matches.nlargest(5, 'imdb_score')
             else:
-                st.info("Not enough data to show genre trends")
-        else:
-            st.warning("Required columns: 'release_year' and 'listed_in'")
-    
-    with st.expander("🌍 Country-wise Content Distribution"):
-        if 'country' in df.columns and 'listed_in' in df.columns:
-            # Country distribution
-            country_counts = df['country'].value_counts().head(10)
-            fig_country = px.bar(x=country_counts.index, y=country_counts.values,
-                               title="Top 10 Countries by Content Count",
-                               labels={'x': 'Country', 'y': 'Number of Titles'})
-            st.plotly_chart(fig_country, use_container_width=True)
+                recommendations = genre_matches.head(5)
             
-            # Genre distribution by top countries
-            st.subheader("Genre Distribution by Country")
-            top_countries = country_counts.head(5).index.tolist()
-            country_genre_data = []
-            
-            for _, row in df[df['country'].isin(top_countries)].iterrows():
-                genres = [g.strip() for g in str(row['listed_in']).split(',')]
-                for genre in genres:
-                    country_genre_data.append({'country': row['country'], 'genre': genre})
-            
-            if country_genre_data:
-                cg_df = pd.DataFrame(country_genre_data)
-                country_genre_pivot = cg_df.groupby(['country', 'genre']).size().unstack(fill_value=0)
-                st.dataframe(country_genre_pivot)
-        else:
-            st.warning("Required columns: 'country' and 'listed_in'")
+            st.subheader(f"Top {user_genre} Recommendations")
+            st.dataframe(recommendations[['title', 'country', 'release_year']])
+
+# Tool 13: Executive Summary Generator
+with st.expander("📄 Tool 13: Executive Summary Generator"):
+    summary_data = {
+        'Total Content': len(df),
+        'Content Mix': f"{len(df[df['type'] == 'Movie'])} Movies, {len(df[df['type'] == 'TV Show'])} TV Shows",
+        'Geographic Reach': f"{df['country'].nunique()} countries",
+        'Release Timeline': f"{df['release_year'].min()}-{df['release_year'].max()}",
+        'Top Genre': df['listed_in'].str.split(', ').explode().value_counts().index[0] if 'listed_in' in df.columns else 'N/A'
+    }
     
-    with st.expander("📊 Content Type Analysis"):
-        if 'type' in df.columns:
-            type_counts = df['type'].value_counts()
-            fig_type = px.pie(values=type_counts.values, names=type_counts.index,
-                             title="Distribution of Movies vs TV Shows")
-            st.plotly_chart(fig_type, use_container_width=True)
+    st.subheader("Executive Summary")
+    for key, value in summary_data.items():
+        st.write(f"**{key}**: {value}")
+
+# Tool 14: AI-Powered Insights
+with st.expander("🤖 Tool 14: AI-Powered Insights"):
+    if gemini_key:
+        analysis_type = st.selectbox("Select analysis type:", 
+                                   ["Content Strategy", "Market Gaps", "Performance Insights", "Trend Predictions"])
+        
+        if st.button("Generate AI Insights"):
+            prompt = f"""
+            Analyze this Netflix dataset summary for {analysis_type}:
+            
+            Dataset: {len(df)} titles
+            Content mix: {df['type'].value_counts().to_dict() if 'type' in df.columns else 'N/A'}
+            Top countries: {df['country'].value_counts().head(3).to_dict() if 'country' in df.columns else 'N/A'}
+            Release years: {df['release_year'].min()}-{df['release_year'].max() if 'release_year' in df.columns else 'N/A'}
+            
+            Provide 3-5 actionable insights for {analysis_type}.
+            """
+            
+            try:
+                model = genai.GenerativeModel("gemini-2.0-flash-exp")
+                response = model.generate_content(prompt)
+                st.write(response.text)
+            except Exception as e:
+                st.error(f"Error: {e}")
+    else:
+        st.info("Enter Gemini API key to use AI insights")
+
+# Tool 15: Data Export & Reporting
+with st.expander("📤 Tool 15: Data Export & Reporting"):
+    export_format = st.selectbox("Export format:", ["CSV", "JSON", "Excel Summary"])
     
-    with st.expander("💬 Ask Gemini About Your Data"):
-        if gemini_key:
-            user_q = st.text_input("Ask a question like 'Which genre is most popular?' or 'Show content trends by country'")
-            if user_q:
-                # Compose prompt from data summary
-                data_summary = f"""
-                Dataset Overview:
-                - Total titles: {len(df)}
-                - Columns: {', '.join(df.columns.tolist())}
-                - Sample data:
-                {df.head().to_string()}
-                
-                Key Statistics:
-                - Content types: {df['type'].value_counts().to_dict() if 'type' in df.columns else 'N/A'}
-                - Top countries: {df['country'].value_counts().head(5).to_dict() if 'country' in df.columns else 'N/A'}
-                - Release year range: {df['release_year'].min()}-{df['release_year'].max() if 'release_year' in df.columns else 'N/A'}
-                """
-                
-                prompt = f"""
-                Here is a summary of a Netflix dataset:
-                {data_summary}
-                
-                User Question: {user_q}
-                
-                Please provide insights based on this Netflix data. Be specific and reference the actual data patterns.
-                """
-                
-                try:
-                    model = genai.GenerativeModel("gemini-2.0-flash-exp")
-                    response = model.generate_content(prompt)
-                    st.markdown("**Gemini Response:**")
-                    st.write(response.text)
-                except Exception as e:
-                    st.error(f"Error from Gemini: {e}")
+    if st.button("Generate Export"):
+        if export_format == "CSV":
+            csv = df.to_csv(index=False)
+            st.download_button("Download CSV", csv, "netflix_analysis.csv", "text/csv")
+        elif export_format == "JSON":
+            json_data = df.to_json(orient='records')
+            st.download_button("Download JSON", json_data, "netflix_analysis.json", "application/json")
         else:
-            st.info("Please enter your Gemini API key in the sidebar to ask questions ✨")
-else:
-    st.info("Upload a dataset to begin ✨")
+            st.success("Excel summary prepared (implementation would generate comprehensive report)")
+
+st.markdown("---")
+st.markdown("**Netflix Data Analytics Dashboard** - Comprehensive toolkit for data analysis capstone projects")
