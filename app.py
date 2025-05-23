@@ -622,5 +622,134 @@ with st.expander("🗓️ Tool 25: Release Month/Seasonality Analysis"):
     else:
         st.info("'date_added' column not available for seasonality analysis.")
 
+# Tool 26: Keyword Search in Titles
+with st.expander("🔑 Tool 26: Keyword Search in Titles"):
+    if 'title' in df.columns:
+        st.subheader("Search Titles by Keyword")
+        search_term = st.text_input("Enter keyword to search in titles:", placeholder="e.g., Love, War, Space")
+        if search_term:
+            # Case-insensitive search
+            results_df = df[df['title'].str.contains(search_term, case=False, na=False)]
+            if not results_df.empty:
+                st.write(f"Found {len(results_df)} titles containing '{search_term}':")
+                display_cols = ['title', 'type', 'release_year']
+                if 'imdb_score' in results_df.columns:
+                    display_cols.append('imdb_score')
+                st.dataframe(results_df[display_cols])
+            else:
+                st.write(f"No titles found containing '{search_term}'.")
+    else:
+        st.info("'title' column not available for keyword search.")
+
+# Tool 27: Content Rating vs. IMDb Score Analysis
+with st.expander("🔞 Tool 27: Content Rating vs. IMDb Score Analysis"):
+    if 'rating' in df.columns and 'imdb_score' in df.columns:
+        st.subheader("Average IMDb Score by Content Rating")
+        avg_score_by_rating = df.groupby('rating')['imdb_score'].mean().sort_values(ascending=False).reset_index()
+        
+        if not avg_score_by_rating.empty:
+            fig_rating_score = px.bar(avg_score_by_rating, x='rating', y='imdb_score',
+                                      title="Average IMDb Score for Each Content Rating",
+                                      labels={'rating': 'Content Rating', 'imdb_score': 'Average IMDb Score'},
+                                      color='rating')
+            st.plotly_chart(fig_rating_score, use_container_width=True)
+
+            st.subheader("IMDb Score Distribution by Rating (Box Plot)")
+            fig_box_rating_score = px.box(df, x='rating', y='imdb_score', color='rating',
+                                          title="IMDb Score Distribution by Content Rating",
+                                          labels={'rating': 'Content Rating', 'imdb_score': 'IMDb Score'})
+            st.plotly_chart(fig_box_rating_score, use_container_width=True)
+        else:
+            st.write("Not enough data to analyze IMDb score by rating.")
+    else:
+        st.info("'rating' and/or 'imdb_score' columns not available for this analysis.")
+
+# Tool 28: Top Director-Actor Pairs
+with st.expander("🤝 Tool 28: Top Director-Actor Collaborations"):
+    if 'director' in df.columns and 'cast' in df.columns and 'title' in df.columns:
+        st.subheader("Most Frequent Director-Actor Pairs")
+        df_collab = df.dropna(subset=['director', 'cast'])
+        if not df_collab.empty:
+            collaborations = []
+            for _, row in df_collab.iterrows():
+                directors = [d.strip() for d in str(row['director']).split(',')]
+                actors = [a.strip() for a in str(row['cast']).split(',')]
+                for director in directors:
+                    if director == "Unknown Director": continue # Skip generic unknown directors
+                    for actor in actors:
+                        if actor == "Unknown Actor": continue # Skip generic unknown actors
+                        collaborations.append((director, actor))
+            
+            if collaborations:
+                collab_counts = Counter(collaborations).most_common(10)
+                if collab_counts:
+                    collab_df = pd.DataFrame(collab_counts, columns=['Director-Actor Pair', 'Number of Collaborations'])
+                    collab_df['Director-Actor Pair'] = collab_df['Director-Actor Pair'].apply(lambda x: f"{x[0]} - {x[1]}")
+                    
+                    fig_collab = px.bar(collab_df, y='Director-Actor Pair', x='Number of Collaborations',
+                                        orientation='h', title="Top 10 Director-Actor Collaborations",
+                                        labels={'Number of Collaborations': 'Number of Titles Together'})
+                    fig_collab.update_layout(yaxis={'categoryorder':'total ascending'})
+                    st.plotly_chart(fig_collab, use_container_width=True)
+                else:
+                    st.write("No significant director-actor collaborations found.")
+            else:
+                st.write("Not enough data to determine collaborations.")
+        else:
+            st.write("Director or cast information is largely missing.")
+    else:
+        st.info("'director', 'cast', and/or 'title' columns not available for collaboration analysis.")
+
+# Tool 29: Time Series Analysis of IMDb Scores
+with st.expander("📈 Tool 29: IMDb Score Trends Over Release Years"):
+    if 'release_year' in df.columns and 'imdb_score' in df.columns:
+        st.subheader("Average IMDb Score of Content by Release Year")
+        avg_score_by_year = df.groupby('release_year')['imdb_score'].mean().reset_index()
+        avg_score_by_year = avg_score_by_year.sort_values('release_year')
+
+        if not avg_score_by_year.empty:
+            fig_score_trend = px.line(avg_score_by_year, x='release_year', y='imdb_score',
+                                      title="Trend of Average IMDb Scores Over Release Years",
+                                      labels={'release_year': 'Release Year', 'imdb_score': 'Average IMDb Score'})
+            fig_score_trend.add_trace(go.Scatter(x=avg_score_by_year['release_year'], y=avg_score_by_year['imdb_score'].rolling(window=5, center=True, min_periods=1).mean(),
+                                                 mode='lines', name='5-Year Rolling Avg', line=dict(dash='dash')))
+            st.plotly_chart(fig_score_trend, use_container_width=True)
+        else:
+            st.write("Not enough data to analyze IMDb score trends over years.")
+    else:
+        st.info("'release_year' and/or 'imdb_score' columns not available for this analysis.")
+
+# Tool 30: Comparative Analysis of Top N Countries
+with st.expander("🌍 Tool 30: Multi-Country Content Profile Comparison"):
+    if 'country' in df.columns and 'type' in df.columns and 'listed_in' in df.columns:
+        st.subheader("Compare Content Profiles of Top Countries")
+        
+        # Use primary country for simplicity
+        df_country_comp = df.copy()
+        df_country_comp['primary_country'] = df_country_comp['country'].astype(str).apply(lambda x: x.split(',')[0].strip())
+        
+        top_countries_list = df_country_comp['primary_country'].value_counts().nlargest(10).index.tolist()
+        selected_countries = st.multiselect("Select up to 3 countries to compare:", top_countries_list, default=top_countries_list[:2] if len(top_countries_list) >=2 else top_countries_list[:1])
+
+        if selected_countries:
+            comparison_df = df_country_comp[df_country_comp['primary_country'].isin(selected_countries)]
+            
+            st.markdown("#### Content Type Distribution by Selected Country")
+            fig_type_comp = px.bar(comparison_df.groupby(['primary_country', 'type']).size().reset_index(name='count'),
+                                 x='primary_country', y='count', color='type', barmode='group',
+                                 title="Movie vs. TV Show Count by Country")
+            st.plotly_chart(fig_type_comp, use_container_width=True)
+
+            if 'imdb_score' in comparison_df.columns:
+                st.markdown("#### Average IMDb Score by Selected Country")
+                fig_imdb_comp = px.bar(comparison_df.groupby('primary_country')['imdb_score'].mean().reset_index(),
+                                     x='primary_country', y='imdb_score', color='primary_country',
+                                     title="Average IMDb Score by Country")
+                st.plotly_chart(fig_imdb_comp, use_container_width=True)
+        else:
+            st.write("Please select at least one country.")
+    else:
+        st.info("'country', 'type', and/or 'listed_in' columns not available for this analysis.")
+
 st.markdown("---")
 st.markdown("**Netflix Data Analytics Dashboard** - Comprehensive toolkit for data analysis capstone projects")
