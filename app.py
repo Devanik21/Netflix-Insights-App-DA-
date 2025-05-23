@@ -657,18 +657,18 @@ with st.expander("🔞 Tool 27: Content Rating vs. IMDb Score Analysis"):
             avg_score_by_rating = df_tool27.groupby('rating')['imdb_score'].mean().sort_values(ascending=False).reset_index()
             
             if not avg_score_by_rating.empty: # Check if groupby operation yielded results
-            fig_rating_score = px.bar(avg_score_by_rating, x='rating', y='imdb_score',
-                                      title="Average IMDb Score for Each Content Rating",
-                                      labels={'rating': 'Content Rating', 'imdb_score': 'Average IMDb Score'},
-                                      color='rating')
-            st.plotly_chart(fig_rating_score, use_container_width=True)
+                fig_rating_score = px.bar(avg_score_by_rating, x='rating', y='imdb_score',
+                                          title="Average IMDb Score for Each Content Rating",
+                                          labels={'rating': 'Content Rating', 'imdb_score': 'Average IMDb Score'},
+                                          color='rating')
+                st.plotly_chart(fig_rating_score, use_container_width=True)
 
-            st.subheader("IMDb Score Distribution by Rating (Box Plot)")
+                st.subheader("IMDb Score Distribution by Rating (Box Plot)")
                 fig_box_rating_score = px.box(df_tool27, x='rating', y='imdb_score', color='rating',
                                           title="IMDb Score Distribution by Content Rating",
                                           labels={'rating': 'Content Rating', 'imdb_score': 'IMDb Score'})
-            st.plotly_chart(fig_box_rating_score, use_container_width=True)
-        else:
+                st.plotly_chart(fig_box_rating_score, use_container_width=True)
+            else:
                 st.write("Not enough valid data to analyze IMDb score by rating after filtering.")
         else:
             st.write("No valid data for 'rating' and 'imdb_score' columns found after attempting to clean 'imdb_score'.")
