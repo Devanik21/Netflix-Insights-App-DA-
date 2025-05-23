@@ -140,8 +140,7 @@ def load_sample_netflix_data():
         "Stranger Things", "The Crown", "Bridgerton", "Money Heist", "The Witcher", "Ozark", "Narcos",
         "Black Mirror", "Squid Game", "Lupin", "Emily in Paris", "The Queen's Gambit", "Dark",
         "You", "Sex Education", "Cobra Kai", "Outer Banks", "Never Have I Ever", "Lucifer", "Elite",
-        "The Umbrella Academy", "Dead to Me", "Russian Doll", "Mindhunter", "Peaky Blinders","Baby Reindeer", "Fallout", "Shōgun", "The Fall of the House of Usher", "Ripley", "3%", "Alice in Borderland", "Erased", "Baki Hanma", "Beef", "Bodies", "The Sandman", "Kaleidoscope", "Echoes", "1899", "The Watcher", "The Night Manager", "Bodyguard", "Top Boy", "Marcella", "Broadchurch", "Happy Valley", "Lupin Part 3", "The Serpent", "The End of the F***ing World", "White Lines", "Collateral", "Giri/Haji", "Criminal: UK", "Criminal: Spain", "Criminal: Germany", "The Chestnut Man", "The Valhalla Murders", "Who Killed Sara?", "The Rain", "Katla", "Into the Night", "Barbarians", "Tribes of Europa", "Betaal", "Sacred Games", "Delhi Crime", "Paatal Lok", "Made in Heaven", "Scam 1992", "Rocket Boys", "Asur", "The Family Man", "Farzi", "Kohrra", "Tabbar", "The Trial", "Ray", "Monica, O My Darling", "Jaane Jaan", "Dahaad", "Suzhal: The Vortex", "The Freelancer", "Kala Paani", "The Railway Men", "Mumbai Mafia", "Indian Predator: The Butcher of Delhi", "The Hunt for Veerappan", "MH370: The Plane That Disappeared", "Take Care of Maya", "Stutz", "The Deepest Breath", "American Nightmare", "Beckham", "Break Point", "Drive to Survive", "Quarterback", "Formula 1: Drive to Survive", "Tour de France: Unchained", "Full Swing", "The Redeem Team", "The Last Dance", "Untold: The Girlfriend Who Didn't Exist", "Untold: Johnny Football", "Untold: Swamp Kings", "Untold: Jake Paul", "Wrestlers", "Bad Sport", "Athlete A", "Icarus", "The Mind, Explained", "How to Change Your Mind", "Live to 100: Secrets of the Blue Zones", "Our Universe", "Secrets of the Saqqara Tomb", "Ancient Apocalypse", "Human Playground", "Connected", "The World’s Most Extraordinary Homes", "Tiny House Nation", "Dream Home Makeover", "Interior Design Masters",
-
+        "The Umbrella Academy", "Dead to Me", "Russian Doll", "Mindhunter", "Peaky Blinders",
         "Extraction", "The Irishman", "Bird Box", "Roma", "Marriage Story", "The Platform", "Enola Holmes",
         "Project Power", "The Old Guard", "Spenser Confidential", "6 Underground", "Murder Mystery",
         "The Kissing Booth", "To All the Boys I've Loved Before", "Always Be My Maybe", "Set It Up", # Approx 40
@@ -174,7 +173,8 @@ def load_sample_netflix_data():
         "The Simpsons", "South Park", "Family Guy", "Bob's Burgers", "Futurama", "King of the Hill",
         "Pulp Fiction", "The Shawshank Redemption", "The Dark Knight", "Forrest Gump", "Inception", "The Matrix",
         "Goodfellas", "Fight Club", "The Lord of the Rings: The Fellowship of the Ring", "Spirited Away", "Parasite",
-        "Interstellar", "Gladiator", "Saving Private Ryan", "The Green Mile", "City of God", "Amelie",
+        "Interstellar", "Gladiator", "Saving Private Ryan", "The Green Mile", "City of God", "Amelie","Baby Reindeer", "Fallout", "Shōgun", "The Fall of the House of Usher", "Ripley", "3%", "Alice in Borderland", "Erased", "Baki Hanma", "Beef", "Bodies", "The Sandman", "Kaleidoscope", "Echoes", "1899", "The Watcher", "The Night Manager", "Bodyguard", "Top Boy", "Marcella", "Broadchurch", "Happy Valley", "Lupin Part 3", "The Serpent", "The End of the F***ing World", "White Lines", "Collateral", "Giri/Haji", "Criminal: UK", "Criminal: Spain", "Criminal: Germany", "The Chestnut Man", "The Valhalla Murders", "Who Killed Sara?", "The Rain", "Katla", "Into the Night", "Barbarians", "Tribes of Europa", "Betaal", "Sacred Games", "Delhi Crime", "Paatal Lok", "Made in Heaven", "Scam 1992", "Rocket Boys", "Asur", "The Family Man", "Farzi", "Kohrra", "Tabbar", "The Trial", "Ray", "Monica, O My Darling", "Jaane Jaan", "Dahaad", "Suzhal: The Vortex", "The Freelancer", "Kala Paani", "The Railway Men", "Mumbai Mafia", "Indian Predator: The Butcher of Delhi", "The Hunt for Veerappan", "MH370: The Plane That Disappeared", "Take Care of Maya", "Stutz", "The Deepest Breath", "American Nightmare", "Beckham", "Break Point", "Drive to Survive", "Quarterback", "Formula 1: Drive to Survive", "Tour de France: Unchained", "Full Swing", "The Redeem Team", "The Last Dance", "Untold: The Girlfriend Who Didn't Exist", "Untold: Johnny Football", "Untold: Swamp Kings", "Untold: Jake Paul", "Wrestlers", "Bad Sport", "Athlete A", "Icarus", "The Mind, Explained", "How to Change Your Mind", "Live to 100: Secrets of the Blue Zones", "Our Universe", "Secrets of the Saqqara Tomb", "Ancient Apocalypse", "Human Playground", "Connected", "The World’s Most Extraordinary Homes", "Tiny House Nation", "Dream Home Makeover", "Interior Design Masters",
+
         "Pan's Labyrinth", "Oldboy (2003)", "A Separation", "The Lives of Others", "Train to Busan", "Shoplifters",
         "Portrait of a Lady on Fire", "Everything Everywhere All at Once", "CODA", "Nomadland", "Drive My Car",
         "Dune (2021)", "Blade Runner 2049", "Mad Max: Fury Road", "Whiplash", "La La Land", "Get Out",
@@ -1195,56 +1195,37 @@ with st.expander("📅 Tool 34: Content Addition Trend (Yearly)"):
     else:
         st.info("'date_added' and 'type' columns are required for this analysis.")
 
-# Tool 35: Description Keyword Analysis
-with st.expander("📝 Tool 35: Description Keyword Analysis"):
-    if 'description' in df.columns:
-        st.subheader("Most Frequent Keywords in Descriptions")
-        
+# Tool 35: Most Common Genres Analysis
+with st.expander("🎭 Tool 35: Most Common Genres Analysis"):
+    if 'listed_in' in df.columns:
+        st.subheader("Most Frequent Individual Genres")
+
         df_tool35 = df.copy()
-        df_tool35.dropna(subset=['description'], inplace=True)
+        df_tool35.dropna(subset=['listed_in'], inplace=True)
 
         if not df_tool35.empty:
-            # Simple tokenization and cleaning
-            text = " ".join(df_tool35['description'].str.lower().tolist())
-            words = re.findall(r'\b\w+\b', text) # Extract words
-            
-            # Basic stop words (can be expanded)
-            stop_words = set([
-                'the', 'a', 'an', 'is', 'it', 'in', 'of', 'for', 'with', 'and', 'to', 'on', 'by', 'about',
-                'from', 'as', 'at', 'be', 'this', 'that', 'have', 'has', 'he', 'she', 'it', 'they', 'we',
-                'you', 'his', 'her', 'its', 'their', 'our', 'will', 'can', 'just', 'get', 'when', 'where',
-                'who', 'what', 'how', 'which', 'if', 'or', 'not', 'no', 'yes', 'out', 'up', 'down', 'in',
-                'out', 'on', 'off', 'over', 'under', 'again', 'further', 'then', 'once', 'here', 'there',
-                'when', 'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other',
-                'some', 'such', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 's', 't', 'can', 'will',
-                'just', 'don', 'should', 'now', 'd', 'll', 'm', 'o', 're', 've', 'y', 'ain', 'aren', 'couldn',
-                'didn', 'doesn', 'hadn', 'hasn', 'haven', 'isn', 'ma', 'mightn', 'mustn', 'needn', 'shan',
-                'shouldn', 'wasn', 'weren', 'won', 'wouldn', 'film', 'series', 'story', 'life', 'world',
-                'new', 'young', 'man', 'woman', 'family', 'find', 'take', 'make', 'come', 'go', 'back',
-                'two', 'one', 'time', 'show', 'tv', 'movie', 'about', 'their', 'into', 'through', 'after',
-                'before', 'during', 'below', 'above', 'between', 'among', 'across', 'behind', 'beside',
-                'down', 'into', 'off', 'out', 'over', 'under', 'up', 'with', 'within', 'without', 'throughout'
-            ])
-            
-            # Filter out stop words and short words
-            filtered_words = [word for word in words if word not in stop_words and len(word) > 2]
-            
-            if filtered_words:
-                word_counts = Counter(filtered_words).most_common(20)
-                word_counts_df = pd.DataFrame(word_counts, columns=['Keyword', 'Frequency'])
+            # Split comma-separated genres and count each one
+            all_genres_list = []
+            for genres_str in df_tool35['listed_in']:
+                genres = [g.strip() for g in genres_str.split(',') if g.strip()]
+                all_genres_list.extend(genres)
 
-                fig_keywords = px.bar(word_counts_df, y='Keyword', x='Frequency',
-                                      orientation='h', title="Top 20 Most Frequent Keywords in Descriptions",
+            if all_genres_list:
+                genre_counts = Counter(all_genres_list).most_common(20) # Get top 20 most common genres
+                genre_counts_df = pd.DataFrame(genre_counts, columns=['Genre', 'Frequency'])
+
+                fig_genres = px.bar(genre_counts_df, y='Genre', x='Frequency',
+                                      orientation='h', title="Top 20 Most Frequent Individual Genres",
                                       labels={'Frequency': 'Number of Occurrences'},
                                       template="plotly_dark")
-                fig_keywords.update_layout(yaxis={'categoryorder':'total ascending'})
-                st.plotly_chart(fig_keywords, use_container_width=True)
+                fig_genres.update_layout(yaxis={'categoryorder':'total ascending'})
+                st.plotly_chart(fig_genres, use_container_width=True)
             else:
-                st.write("No significant keywords found in descriptions after filtering.")
+                st.write("No genres found in the 'listed_in' column.")
         else:
-            st.write("No 'description' data available for analysis.")
+            st.write("No 'listed_in' data available for analysis.")
     else:
-        st.info("'description' column not available for keyword analysis.")
+        st.info("'listed_in' column not available for genre frequency analysis.")
 
 st.markdown("---")
 st.markdown("**Netflix Data Analytics Dashboard** - Comprehensive toolkit for data analysis capstone projects")
