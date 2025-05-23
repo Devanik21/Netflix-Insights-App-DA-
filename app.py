@@ -470,5 +470,50 @@ with st.expander("🔎 Tool 20: Genre Deep Dive"):
     else:
         st.info("Required columns (listed_in, release_year, imdb_score, title) not available for Genre Deep Dive.")
 
+# Tool 21: AI Chat with Dataset
+with st.expander("💬 Tool 21: AI Chat with Dataset"):
+    if gemini_key:
+        st.subheader("Ask a question about your dataset")
+        user_question = st.text_area("Your question:", height=100, placeholder="e.g., What are the top 5 countries with the most titles? or How many movies were released in 2020?")
+
+        if st.button("Ask AI 🤖"):
+            if user_question:
+                # Prepare a summary of the DataFrame for the AI
+                # Using .to_string() to get a string representation
+                # Limiting the head() and describe() output to keep the prompt concise
+                try:
+                    df_summary = f"""
+                    Here's a summary of the dataset I'm working with:
+                    Column Names: {df.columns.tolist()}
+                    Data Types:
+{df.dtypes.to_string()}
+                    First 5 Rows:
+{df.head().to_string()}
+                    Basic Statistics:
+{df.describe(include='all').head().to_string()} 
+                    Total rows: {len(df)}
+                    """
+
+                    prompt = f"""
+                    You are a data analysis assistant. Based *only* on the following dataset summary, please answer the user's question.
+                    If the information is not present in the summary or cannot be inferred, please state that.
+                    
+                    Dataset Summary:
+                    {df_summary}
+                    
+                    User's Question: {user_question}
+                    
+                    Answer:
+                    """
+                    model = genai.GenerativeModel("gemini-pro") # Using gemini-pro as it's good for chat
+                    response = model.generate_content(prompt)
+                    st.markdown(response.text)
+                except Exception as e:
+                    st.error(f"An error occurred while querying the AI: {e}")
+            else:
+                st.warning("Please enter a question.")
+    else:
+        st.info("Please enter your Gemini API key in the sidebar to use the AI Chat feature.")
+
 st.markdown("---")
 st.markdown("**Netflix Data Analytics Dashboard** - Comprehensive toolkit for data analysis capstone projects")
