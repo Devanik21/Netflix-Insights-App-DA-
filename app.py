@@ -12,7 +12,7 @@ from wordcloud import WordCloud
 import re
 from collections import Counter
 
-st.set_page_config(page_title="Netflix Analytics Dashboard", layout="wide")
+st.set_page_config(page_title="Netflix Analytics Dashboard", layout="wide", page_icon="🎬")
 st.title("🎬 Netflix Data Analytics Dashboard")
 
 # Custom CSS for Dark Theme and Flashcards
