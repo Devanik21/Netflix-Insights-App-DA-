@@ -12,6 +12,7 @@ from wordcloud import WordCloud
 import re
 from collections import Counter
 
+
 st.set_page_config(page_title="Netflix Analytics Dashboard", layout="wide", page_icon="🎬")
 st.title("🎬 Netflix Data Analytics Dashboard")
 
@@ -1336,11 +1337,11 @@ with st.expander("🤖 Tool 14: AI-Powered Insights"):
             """
             
             try:
-                model = genai.GenerativeModel("gemini-2.0-flash") # Ensure this model name is current
+                model = genai.GenerativeModel("gemini-1.5-flash-latest")
                 response = model.generate_content(prompt)
                 st.write(response.text)
             except Exception as e:
-                st.error(f"Error generating AI insights: {e}")
+                st.error(f"Error generating AI insights. Ensure the API key is correct and the model 'gemini-1.5-flash-latest' is available: {e}")
     else:
         st.info("Enter Gemini API key in the sidebar to use AI-Powered Insights.")
 
@@ -1362,17 +1363,299 @@ with st.expander("💬 Tool 21: AI Chat with Dataset"):
                     Total rows: {len(df)}"""
 
                     prompt = f"""You are a data analysis assistant. Based *only* on the following dataset summary, please answer the user's question. If the information is not present in the summary or cannot be inferred, please state that.
-                    Dataset Summary:\n{df_summary}\n\nUser's Question: {user_question}\n\nAnswer:"""
+                    Dataset Summary (use only this information):\n{df_summary}\n\nUser's Question: {user_question}\n\nAnswer:"""
                     
-                    model = genai.GenerativeModel("gemini-2.0-flash") # Ensure this model name is current
+                    model = genai.GenerativeModel("gemini-1.5-flash-latest")
                     response = model.generate_content(prompt)
                     st.markdown(response.text)
                 except Exception as e:
-                    st.error(f"An error occurred while querying the AI: {e}")
+                    st.error(f"An error occurred while querying the AI. Ensure the API key is correct and the model 'gemini-1.5-flash-latest' is available: {e}")
             else:
                 st.warning("Please enter a question.")
     else:
         st.info("Please enter your Gemini API key in the sidebar to use the AI Chat feature.")
+
+st.header("🔍 Deeper Analytical Perspectives")
+
+# Tool 36: Content Lifecycle Analysis
+with st.expander("🔄 Tool 36: Content Lifecycle Analysis"):
+    if 'release_year' in df.columns and 'date_added' in df.columns and 'imdb_score' in df.columns:
+        df_lifecycle = df.copy()
+        df_lifecycle['date_added'] = pd.to_datetime(df_lifecycle['date_added'], errors='coerce')
+        df_lifecycle.dropna(subset=['release_year', 'date_added', 'imdb_score'], inplace=True)
+
+        if not df_lifecycle.empty:
+            df_lifecycle['release_year'] = df_lifecycle['release_year'].astype(int)
+            df_lifecycle['year_added'] = df_lifecycle['date_added'].dt.year
+            
+            df_lifecycle['age_at_addition'] = df_lifecycle['year_added'] - df_lifecycle['release_year']
+            
+            current_year = datetime.now().year
+            df_lifecycle['years_on_platform'] = current_year - df_lifecycle['year_added']
+
+            st.subheader("Content Age at Addition to Netflix")
+            fig_age_add = px.histogram(df_lifecycle, x='age_at_addition', nbins=30,
+                                       title="Distribution of Content Age When Added to Netflix",
+                                       labels={'age_at_addition': 'Age of Content When Added (Years)'},
+                                       template="plotly_dark")
+            st.plotly_chart(fig_age_add, use_container_width=True)
+
+            st.subheader("Performance vs. Age at Addition")
+            avg_score_by_age_add = df_lifecycle.groupby('age_at_addition')['imdb_score'].mean().reset_index()
+            fig_score_age_add = px.scatter(avg_score_by_age_add, x='age_at_addition', y='imdb_score', trendline="ols",
+                                         title="Average IMDb Score vs. Content Age at Addition",
+                                         labels={'age_at_addition': 'Age of Content When Added (Years)', 'imdb_score': 'Average IMDb Score'},
+                                         template="plotly_dark")
+            st.plotly_chart(fig_score_age_add, use_container_width=True)
+
+            st.subheader("Performance vs. Years on Platform")
+            avg_score_by_platform_time = df_lifecycle.groupby('years_on_platform')['imdb_score'].mean().reset_index()
+            fig_score_platform_time = px.line(avg_score_by_platform_time, x='years_on_platform', y='imdb_score', markers=True,
+                                              title="Average IMDb Score vs. Years on Netflix Platform",
+                                              labels={'years_on_platform': 'Years on Platform', 'imdb_score': 'Average IMDb Score'},
+                                              template="plotly_dark")
+            st.plotly_chart(fig_score_platform_time, use_container_width=True)
+        else:
+            st.info("Not enough valid data for lifecycle analysis after cleaning 'date_added', 'release_year', and 'imdb_score'.")
+    else:
+        st.info("Required columns ('release_year', 'date_added', 'imdb_score') not available for Content Lifecycle Analysis.")
+
+# Tool 37: "Hidden Gems" Detector
+with st.expander("💎 Tool 37: 'Hidden Gems' Detector"):
+    if 'imdb_score' in df.columns and ('views_millions' in df.columns or 'budget_millions' in df.columns) and 'title' in df.columns:
+        df_gems = df.copy()
+        df_gems['imdb_score'] = pd.to_numeric(df_gems['imdb_score'], errors='coerce')
+        
+        performance_metric_col = None
+        performance_label = ""
+        if 'views_millions' in df_gems.columns:
+            df_gems['views_millions'] = pd.to_numeric(df_gems['views_millions'], errors='coerce')
+            if not df_gems['views_millions'].isnull().all():
+                performance_metric_col = 'views_millions'
+                performance_label = 'Views (Millions)'
+        
+        if performance_metric_col is None and 'budget_millions' in df_gems.columns: # Fallback to budget if views not usable
+            df_gems['budget_millions'] = pd.to_numeric(df_gems['budget_millions'], errors='coerce')
+            if not df_gems['budget_millions'].isnull().all():
+                performance_metric_col = 'budget_millions'
+                performance_label = 'Budget (Millions) - Proxy for Popularity/Exposure'
+
+        if performance_metric_col:
+            df_gems.dropna(subset=['imdb_score', performance_metric_col, 'title'], inplace=True)
+
+            if not df_gems.empty:
+                st.subheader("Define 'Hidden Gem' Criteria")
+                col_gem1, col_gem2 = st.columns(2)
+                min_imdb = col_gem1.slider("Minimum IMDb Score for a Gem:", 5.0, 9.5, 7.5, 0.1, key="gem_min_imdb")
+                
+                if performance_metric_col == 'views_millions':
+                    max_performance = col_gem2.slider(f"Maximum {performance_label} for a Gem:", 
+                                                      float(df_gems[performance_metric_col].min()), 
+                                                      float(df_gems[performance_metric_col].quantile(0.75)), # Avoid extreme max
+                                                      float(df_gems[performance_metric_col].quantile(0.25)), # Default to lower quartile
+                                                      key="gem_max_perf")
+                else: # budget_millions
+                     max_performance = col_gem2.slider(f"Maximum {performance_label} for a Gem:", 
+                                                      float(df_gems[performance_metric_col].min()), 
+                                                      float(df_gems[performance_metric_col].quantile(0.75)), 
+                                                      float(df_gems[performance_metric_col].quantile(0.5)), # Default to median for budget
+                                                      key="gem_max_perf_budget")
+
+                hidden_gems_df = df_gems[
+                    (df_gems['imdb_score'] >= min_imdb) & 
+                    (df_gems[performance_metric_col] <= max_performance)
+                ]
+
+                fig_gems = px.scatter(df_gems, x=performance_metric_col, y='imdb_score', color='type',
+                                      title=f"IMDb Score vs. {performance_label}",
+                                      labels={'imdb_score': 'IMDb Score', performance_metric_col: performance_label},
+                                      template="plotly_dark", hover_data=['title'])
+                
+                # Highlight hidden gems
+                if not hidden_gems_df.empty:
+                    fig_gems.add_trace(go.Scatter(x=hidden_gems_df[performance_metric_col], y=hidden_gems_df['imdb_score'],
+                                                  mode='markers', marker=dict(size=12, color='gold', symbol='star'),
+                                                  name='Hidden Gem', hoverinfo='skip')) # Use hover_data from main scatter
+
+                st.plotly_chart(fig_gems, use_container_width=True)
+
+                if not hidden_gems_df.empty:
+                    st.subheader(f"Identified Hidden Gems ({len(hidden_gems_df)} titles)")
+                    st.dataframe(hidden_gems_df[['title', 'type', 'imdb_score', performance_metric_col, 'release_year']].sort_values(by='imdb_score', ascending=False))
+                else:
+                    st.info("No titles match the current 'Hidden Gem' criteria.")
+            else:
+                st.info(f"Not enough valid data for 'imdb_score' and '{performance_label}' to detect hidden gems.")
+        else:
+            st.info("A usable performance metric ('views_millions' or 'budget_millions') is not available or has no valid data.")
+    else:
+        st.info("Required columns ('imdb_score', 'title', and 'views_millions' or 'budget_millions') not available for Hidden Gems Detector.")
+
+# Tool 38: Genre Popularity vs. Saturation Matrix
+with st.expander("🎯 Tool 38: Genre Popularity vs. Saturation Matrix"):
+    if 'listed_in' in df.columns and 'imdb_score' in df.columns:
+        df_genre_matrix = df.copy()
+        df_genre_matrix['imdb_score'] = pd.to_numeric(df_genre_matrix['imdb_score'], errors='coerce')
+        df_genre_matrix.dropna(subset=['listed_in', 'imdb_score'], inplace=True)
+
+        if not df_genre_matrix.empty:
+            # Explode genres
+            genre_exploded_df = df_genre_matrix.assign(genre=df_genre_matrix['listed_in'].str.split(', ')).explode('genre')
+            genre_exploded_df['genre'] = genre_exploded_df['genre'].str.strip()
+            genre_exploded_df = genre_exploded_df[genre_exploded_df['genre'] != '']
+
+            if not genre_exploded_df.empty:
+                genre_stats = genre_exploded_df.groupby('genre').agg(
+                    saturation_count=('title', 'count'),
+                    avg_imdb_score=('imdb_score', 'mean'),
+                    avg_budget_millions=('budget_millions', 'mean') if 'budget_millions' in genre_exploded_df.columns else pd.NamedAgg(column='title', aggfunc=lambda x: 0) # Placeholder if no budget
+                ).reset_index()
+                genre_stats.dropna(subset=['avg_imdb_score'], inplace=True) # Ensure genres have scores
+                genre_stats = genre_stats[genre_stats['saturation_count'] > 1] # Filter for genres with more than 1 title for meaningful stats
+
+                if not genre_stats.empty:
+                    # Cap bubble size for better visualization if budget is used
+                    size_col = 'avg_budget_millions' if 'budget_millions' in genre_exploded_df.columns and genre_stats['avg_budget_millions'].sum() > 0 else None
+                    if size_col:
+                         # Normalize budget for size or use a sensible cap
+                        max_budget_for_size = genre_stats[size_col].quantile(0.95) # Cap at 95th percentile to avoid outliers dominating
+                        genre_stats['bubble_size'] = genre_stats[size_col].clip(upper=max_budget_for_size) * 0.5 # Scale factor
+                        size_col_for_plot = 'bubble_size'
+                        hover_data_cols = ['genre', 'saturation_count', 'avg_imdb_score', 'avg_budget_millions']
+                    else:
+                        size_col_for_plot = None # No bubble size if no budget
+                        hover_data_cols = ['genre', 'saturation_count', 'avg_imdb_score']
+
+
+                    fig_genre_matrix = px.scatter(genre_stats, x='saturation_count', y='avg_imdb_score',
+                                                  size=size_col_for_plot, color='genre', 
+                                                  hover_name='genre', hover_data=hover_data_cols,
+                                                  title="Genre Popularity (Avg. IMDb) vs. Saturation (Title Count)",
+                                                  labels={'saturation_count': 'Saturation (Number of Titles)', 
+                                                          'avg_imdb_score': 'Popularity (Average IMDb Score)'},
+                                                  size_max=60 if size_col_for_plot else 15, # Adjust size_max
+                                                  template="plotly_dark")
+                    st.plotly_chart(fig_genre_matrix, use_container_width=True)
+                    st.caption("Bubble size represents average budget (if available and applicable). Larger bubbles indicate higher average budgets for titles in that genre.")
+                else:
+                    st.info("Not enough genre data (after filtering for multiple titles per genre) to create the matrix.")
+            else:
+                st.info("No valid genres found after exploding the 'listed_in' column.")
+        else:
+            st.info("Not enough valid data for 'listed_in' and 'imdb_score' to create the genre matrix.")
+    else:
+        st.info("Required columns ('listed_in', 'imdb_score') not available for Genre Popularity vs. Saturation Matrix.")
+
+# Tool 39: N-gram Analysis on Titles
+with st.expander("🔑 Tool 39: N-gram Analysis on Titles"):
+    if 'title' in df.columns:
+        from sklearn.feature_extraction.text import CountVectorizer
+
+        df_ngram = df.copy()
+        df_ngram.dropna(subset=['title'], inplace=True)
+        titles_corpus = df_ngram['title'].astype(str).str.lower().tolist()
+
+        if titles_corpus:
+            st.subheader("Common Phrases in Content Titles")
+
+            def get_top_n_grams(corpus, ngram_range, n=10):
+                try:
+                    vec = CountVectorizer(ngram_range=ngram_range, stop_words='english').fit(corpus)
+                    bag_of_words = vec.transform(corpus)
+                    sum_words = bag_of_words.sum(axis=0)
+                    words_freq = [(word, sum_words[0, idx]) for word, idx in vec.vocabulary_.items()]
+                    words_freq = sorted(words_freq, key=lambda x: x[1], reverse=True)
+                    return words_freq[:n]
+                except ValueError: # Happens if corpus is empty after stop words or too short
+                    return []
+
+            col_ngram1, col_ngram2 = st.columns(2)
+            with col_ngram1:
+                st.markdown("#### Top Bi-grams (2-word phrases)")
+                top_bigrams = get_top_n_grams(titles_corpus, ngram_range=(2,2), n=10)
+                if top_bigrams:
+                    bigram_df = pd.DataFrame(top_bigrams, columns=['Bi-gram', 'Frequency'])
+                    fig_bigram = px.bar(bigram_df, x='Frequency', y='Bi-gram', orientation='h', template="plotly_dark", title="Top 10 Bi-grams in Titles")
+                    fig_bigram.update_layout(yaxis={'categoryorder':'total ascending'})
+                    st.plotly_chart(fig_bigram, use_container_width=True)
+                else:
+                    st.write("Not enough data to extract bi-grams or no common bi-grams found.")
+
+            with col_ngram2:
+                st.markdown("#### Top Tri-grams (3-word phrases)")
+                top_trigrams = get_top_n_grams(titles_corpus, ngram_range=(3,3), n=10)
+                if top_trigrams:
+                    trigram_df = pd.DataFrame(top_trigrams, columns=['Tri-gram', 'Frequency'])
+                    fig_trigram = px.bar(trigram_df, x='Frequency', y='Tri-gram', orientation='h', template="plotly_dark", title="Top 10 Tri-grams in Titles")
+                    fig_trigram.update_layout(yaxis={'categoryorder':'total ascending'})
+                    st.plotly_chart(fig_trigram, use_container_width=True)
+                else:
+                    st.write("Not enough data to extract tri-grams or no common tri-grams found.")
+        else:
+            st.info("No titles available for N-gram analysis.")
+    else:
+        st.info("'title' column not available for N-gram Analysis.")
+
+# Tool 40: User Persona-Based Recommendations (Simulated)
+with st.expander("👤 Tool 40: User Persona-Based Recommendations (Simulated)"):
+    if 'type' in df.columns and 'listed_in' in df.columns and 'imdb_score' in df.columns and 'rating' in df.columns:
+        df_persona = df.copy()
+        df_persona['imdb_score'] = pd.to_numeric(df_persona['imdb_score'], errors='coerce')
+        df_persona.dropna(subset=['type', 'listed_in', 'imdb_score', 'rating', 'title'], inplace=True)
+
+        personas = {
+            "Action Enthusiast": {
+                "genres": ["Action & Adventure", "Sci-Fi & Fantasy", "Thrillers"],
+                "min_imdb": 6.5,
+                "ratings": ["PG-13", "R", "TV-14", "TV-MA"],
+                "type": None # Any type
+            },
+            "Documentary Lover": {
+                "genres": ["Documentaries", "Science & Nature TV", "Historical Documentaries"], # Add more docu genres if in data
+                "min_imdb": 7.0,
+                "ratings": ["TV-PG", "TV-14", "PG", "G"],
+                "type": None 
+            },
+            "Family Movie Night": {
+                "genres": ["Kids' TV", "Comedies", "Family Movies", "Animation"], # Add more family genres
+                "min_imdb": 6.0,
+                "ratings": ["G", "PG", "TV-Y", "TV-Y7", "TV-G"],
+                "type": "Movie"
+            },
+            "Critically Acclaimed Seeker": {
+                "genres": ["Dramas", "Independent Movies", "International Movies", "Classic Movies"],
+                "min_imdb": 8.0,
+                "ratings": ["R", "PG-13", "TV-MA", "TV-14"],
+                "type": None
+            }
+        }
+
+        selected_persona_name = st.selectbox("Select a User Persona:", list(personas.keys()), key="persona_select")
+        
+        if selected_persona_name and not df_persona.empty:
+            persona_criteria = personas[selected_persona_name]
+            st.markdown(f"#### Recommendations for: {selected_persona_name}")
+            st.caption(f"Prefers: Genres like {', '.join(persona_criteria['genres'][:3])}..., IMDb >= {persona_criteria['min_imdb']}, Ratings like {', '.join(persona_criteria['ratings'][:2])}...")
+
+            filtered_df = df_persona[
+                df_persona['listed_in'].apply(lambda x: any(g in x for g in persona_criteria['genres'])) &
+                (df_persona['imdb_score'] >= persona_criteria['min_imdb']) &
+                (df_persona['rating'].isin(persona_criteria['ratings']))
+            ]
+
+            if persona_criteria['type']:
+                filtered_df = filtered_df[filtered_df['type'] == persona_criteria['type']]
+            
+            if not filtered_df.empty:
+                recommendations = filtered_df.nlargest(10, 'imdb_score')
+                st.dataframe(recommendations[['title', 'type', 'imdb_score', 'release_year', 'listed_in', 'rating']])
+            else:
+                st.info(f"No content found matching the '{selected_persona_name}' persona criteria with the current dataset.")
+        elif df_persona.empty:
+            st.info("Not enough data to provide persona-based recommendations after cleaning.")
+    else:
+        st.info("Required columns ('type', 'listed_in', 'imdb_score', 'rating', 'title') not available for Persona-Based Recommendations.")
+
 
 st.markdown("---")
 st.markdown("**Netflix Data Analytics Dashboard** - Comprehensive toolkit for data analysis capstone projects")
