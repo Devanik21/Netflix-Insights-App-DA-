@@ -647,68 +647,7 @@ st.header("🔬 Advanced Analytics")
 # Tool 14: AI-Powered Insights - MOVED TO AI SECTION
 # Tool 21: AI Chat with Dataset - MOVED TO AI SECTION
 
-# Tool 11: Statistical Summary
-with st.expander("📋 Tool 11: Statistical Summary Report"):
-    st.subheader("Dataset Overview")
-    st.write(df.describe())
-    
-    st.subheader("Data Quality Report")
-    missing_data = df.isnull().sum()
-    st.write("Missing Values:", missing_data[missing_data > 0].to_dict())
-    
-    st.subheader("Categorical Analysis")
-    for col in df.select_dtypes(include=['object']).columns:
-        st.write(f"**{col}**: {df[col].nunique()} unique values")
-
-# Tool 12: Content Recommendation Engine
-with st.expander("🎯 Tool 12: Content Recommendation Engine"):
-    if 'listed_in' in df.columns:
-        user_genre = st.selectbox("Select preferred genre:", 
-                                 ['Drama', 'Comedy', 'Action', 'Horror', 'Sci-Fi', 'Crime'])
-        
-        # Simple content-based filtering
-        genre_matches = df[df['listed_in'].str.contains(user_genre, na=False)]
-        
-        if not genre_matches.empty:
-            if 'imdb_score' in df.columns:
-                recommendations = genre_matches.nlargest(5, 'imdb_score')
-            else:
-                recommendations = genre_matches.head(5)
-            
-            st.subheader(f"Top {user_genre} Recommendations")
-            st.dataframe(recommendations[['title', 'country', 'release_year']])
-
-# Tool 13: Executive Summary Generator
-with st.expander("📄 Tool 13: Executive Summary Generator"):
-    summary_data = {
-        'Total Content': len(df) if not df.empty else 0,
-        'Content Mix': f"{len(df[df['type'] == 'Movie'])} Movies, {len(df[df['type'] == 'TV Show'])} TV Shows" if 'type' in df.columns and not df.empty else "N/A",
-        'Geographic Reach': f"{df['country'].nunique()} countries" if 'country' in df.columns and not df.empty else "N/A",
-        'Release Timeline': f"{df['release_year'].min()}-{df['release_year'].max()}" if 'release_year' in df.columns and not df.empty else "N/A",
-        'Top Genre': df['listed_in'].str.split(', ', expand=True).stack().value_counts().index[0] if 'listed_in' in df.columns and not df.empty and not df['listed_in'].dropna().empty else 'N/A'
-    }
-    
-    st.subheader("Executive Summary")
-    for key, value in summary_data.items():
-        st.write(f"**{key}**: {value}")
-
-# Tool 11: Statistical Summary
-with st.expander("📋 Tool 11: Statistical Summary Report"):
-    st.subheader("Dataset Overview")
-    st.write(df.describe())
-    
-    st.subheader("Data Quality Report")
-    missing_data = df.isnull().sum()
-    st.write("Missing Values:", missing_data[missing_data > 0].to_dict())
-    
-    st.subheader("Categorical Analysis")
-    for col in df.select_dtypes(include=['object']).columns:
-        st.write(f"**{col}**: {df[col].nunique()} unique values")
-
-# Tool 12: Content Recommendation Engine
-with st.expander("🎯 Tool 12: Content Recommendation Engine"):
-    if 'listed_in' in df.columns:
-        user_genre = st.selectbox("Select preferred genre:", 
+        user_genre = st.selectbox("Select preferred genre:",
                                  ['Drama', 'Comedy', 'Action', 'Horror', 'Sci-Fi', 'Crime'])
         
         # Simple content-based filtering
