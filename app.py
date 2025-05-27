@@ -339,21 +339,73 @@ with st.expander("📊 Tool 1: Content Performance Analytics"):
 # Tool 2: Genre Trend Analysis
 with st.expander("📈 Tool 2: Genre Trend Analysis"):
     if 'release_year' in df.columns and 'listed_in' in df.columns:
+        # Data Preparation
         genre_data = []
         for _, row in df.iterrows():
-            genres = [g.strip() for g in str(row['listed_in']).split(',')]
-            for genre in genres:
-                genre_data.append({'release_year': row['release_year'], 'genre': genre})
+            # Ensure 'listed_in' is a string and handle potential NaNs
+            if pd.notna(row['listed_in']) and isinstance(row['listed_in'], str):
+                genres = [g.strip() for g in row['listed_in'].split(',')]
+                for genre in genres:
+                    if genre: # Ensure genre is not an empty string
+                        genre_data.append({'release_year': row['release_year'], 'genre': genre})
         
-        genre_df = pd.DataFrame(genre_data)
-        genre_trends = genre_df.groupby(['release_year', 'genre']).size().reset_index(name='count')
-        top_genres = genre_df['genre'].value_counts().head(6).index.tolist()
-        
-        fig = px.line(genre_trends[genre_trends['genre'].isin(top_genres)], 
-                     x='release_year', y='count', color='genre',
-                     title="Genre Popularity Trends Over Time",
-                     template="plotly_dark")
-        st.plotly_chart(fig, use_container_width=True)
+        if not genre_data:
+            st.info("No valid genre data found to analyze.")
+        else:
+            genre_df = pd.DataFrame(genre_data)
+            
+            # Ensure release_year is numeric for proper sorting and grouping
+            genre_df['release_year'] = pd.to_numeric(genre_df['release_year'], errors='coerce')
+            genre_df.dropna(subset=['release_year'], inplace=True)
+            genre_df['release_year'] = genre_df['release_year'].astype(int)
+
+            genre_trends = genre_df.groupby(['release_year', 'genre']).size().reset_index(name='count')
+            
+            # Determine top N genres
+            num_top_genres = st.slider("Number of Top Genres to Display:", min_value=3, max_value=15, value=6, key="genre_slider_tool2")
+            top_genres_list = genre_df['genre'].value_counts().n_largest(num_top_genres).index.tolist()
+            
+            genre_trends_top = genre_trends[genre_trends['genre'].isin(top_genres_list)].copy() # Use .copy()
+            
+            # Smoothing
+            smoothing_window = st.slider("Smoothing Window (years):", min_value=1, max_value=7, value=3, step=2, key="smoothing_slider_tool2", help="Set to 1 for no smoothing (raw data).")
+
+            if not genre_trends_top.empty:
+                # Sort before applying rolling window
+                genre_trends_top = genre_trends_top.sort_values(by=['genre', 'release_year'])
+                
+                if smoothing_window > 1:
+                    # Apply rolling average per genre
+                    genre_trends_top['display_count'] = genre_trends_top.groupby('genre')['count'].transform(
+                        lambda x: x.rolling(window=smoothing_window, center=True, min_periods=1).mean()
+                    )
+                    y_axis_label = f'Smoothed Count of Titles ({smoothing_window}-year avg)'
+                    plot_title = f"Top {num_top_genres} Genre Popularity Trends (Smoothed)"
+                else:
+                    genre_trends_top['display_count'] = genre_trends_top['count']
+                    y_axis_label = 'Count of Titles'
+                    plot_title = f"Top {num_top_genres} Genre Popularity Trends"
+
+                fig = px.line(genre_trends_top,
+                             x='release_year', y='display_count', color='genre',
+                             title=plot_title,
+                             labels={'release_year': 'Release Year', 'display_count': y_axis_label},
+                             template="plotly_dark")
+                
+                if smoothing_window > 1 and st.checkbox("Show actual data points", value=False, key="show_actual_genre_points_tool2"):
+                    for genre_val in top_genres_list: # Iterate using genre_val to avoid conflict
+                        actual_data = genre_trends_top[genre_trends_top['genre'] == genre_val]
+                        if not actual_data.empty:
+                             fig.add_scatter(x=actual_data['release_year'], y=actual_data['count'], mode='markers', name=f'{genre_val} (Actual)',
+                                             marker=dict(size=5, opacity=0.6))
+                st.plotly_chart(fig, use_container_width=True)
+
+                st.subheader(f"Top {num_top_genres} Most Popular Genres (Overall)")
+                st.dataframe(genre_df['genre'].value_counts().n_largest(num_top_genres).rename("Total Titles"))
+            else:
+                st.info("Not enough data for the selected top genres to display trends.")
+    else:
+        st.info("Release year and/or listed_in (genre) information not available for this analysis.")
 
 # Tool 3: Geographic Content Distribution
 with st.expander("🌍 Tool 3: Geographic Content Distribution"):
@@ -1229,4 +1281,3 @@ with st.expander("🎭 Tool 35: Most Common Genres Analysis"):
 
 st.markdown("---")
 st.markdown("**Netflix Data Analytics Dashboard** - Comprehensive toolkit for data analysis capstone projects")
-
