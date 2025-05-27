@@ -12,6 +12,7 @@ from wordcloud import WordCloud
 import re
 from collections import Counter
 
+from itertools import combinations # Added for Tool 50
 
 st.set_page_config(page_title="Netflix Analytics Dashboard", layout="wide", page_icon="🎬")
 st.title("🎬 Netflix Data Analytics Dashboard")
@@ -2011,6 +2012,169 @@ with st.expander("💸 Tool 47: Budget Efficiency Tiers & ROI Analysis"): # Renu
             st.info("Not enough valid data for budget, views, or IMDb score to perform budget efficiency analysis.")
     else:
         st.info("Required columns ('budget_millions', 'views_millions', 'imdb_score') not available for this analysis.")
+
+# Tool 48: Content Pacing & Freshness Strategy Analysis
+with st.expander("📊 Tool 48: Content Pacing & Freshness Strategy Analysis"):
+    if 'release_year' in df.columns and 'date_added' in df.columns and 'type' in df.columns:
+        df_pacing = df.copy()
+        df_pacing['date_added'] = pd.to_datetime(df_pacing['date_added'], errors='coerce')
+        df_pacing['release_year'] = pd.to_numeric(df_pacing['release_year'], errors='coerce')
+        df_pacing.dropna(subset=['release_year', 'date_added', 'type'], inplace=True)
+
+        if not df_pacing.empty:
+            df_pacing['year_added'] = df_pacing['date_added'].dt.year
+            df_pacing['age_at_addition'] = df_pacing['year_added'] - df_pacing['release_year']
+            df_pacing = df_pacing[df_pacing['age_at_addition'] >= 0] # Consider only non-negative age
+
+            if not df_pacing.empty:
+                st.subheader("Content Age at Addition: Movies vs. TV Shows")
+                fig_pacing_type = px.box(df_pacing, x='type', y='age_at_addition', color='type',
+                                         title="Freshness: Age of Content When Added (Movies vs. TV Shows)",
+                                         labels={'age_at_addition': 'Age at Addition (Years)', 'type': 'Content Type'},
+                                         template="plotly_dark")
+                st.plotly_chart(fig_pacing_type, use_container_width=True)
+
+                if 'listed_in' in df_pacing.columns:
+                    st.subheader("Content Age at Addition by Top Genres")
+                    pacing_genre_exploded = df_pacing.assign(genre=df_pacing['listed_in'].str.split(', ')).explode('genre')
+                    pacing_genre_exploded['genre'] = pacing_genre_exploded['genre'].str.strip()
+                    
+                    top_n_genres_pacing = st.slider("Number of Top Genres for Pacing Analysis:", 3, 10, 5, key="pacing_genre_slider")
+                    common_genres = pacing_genre_exploded['genre'].value_counts().nlargest(top_n_genres_pacing).index.tolist()
+                    
+                    pacing_top_genres_df = pacing_genre_exploded[pacing_genre_exploded['genre'].isin(common_genres)]
+
+                    if not pacing_top_genres_df.empty:
+                        fig_pacing_genre = px.box(pacing_top_genres_df, x='genre', y='age_at_addition', color='genre',
+                                                  title=f"Freshness: Age of Content When Added (Top {top_n_genres_pacing} Genres)",
+                                                  labels={'age_at_addition': 'Age at Addition (Years)', 'genre': 'Genre'},
+                                                  template="plotly_dark")
+                        st.plotly_chart(fig_pacing_genre, use_container_width=True)
+                    else:
+                        st.info("Not enough data for selected top genres to analyze pacing.")
+            else:
+                st.info("No valid data for content pacing analysis after filtering (e.g., for non-negative age at addition).")
+        else:
+            st.info("Not enough valid data for 'release_year', 'date_added', or 'type' to perform pacing analysis.")
+    else:
+        st.info("Required columns ('release_year', 'date_added', 'type') not available for Content Pacing Analysis.")
+
+# Tool 49: Emerging Talent Spotlight (Directors/Actors)
+with st.expander("🌟 Tool 49: Emerging Talent Spotlight (Directors/Actors)"):
+    if all(col in df.columns for col in ['director', 'cast', 'title', 'imdb_score']):
+        df_talent = df.copy()
+        df_talent['imdb_score'] = pd.to_numeric(df_talent['imdb_score'], errors='coerce')
+        if 'budget_millions' in df_talent.columns:
+            df_talent['budget_millions'] = pd.to_numeric(df_talent['budget_millions'], errors='coerce')
+        if 'views_millions' in df_talent.columns:
+            df_talent['views_millions'] = pd.to_numeric(df_talent['views_millions'], errors='coerce')
+        
+        df_talent.dropna(subset=['director', 'cast', 'title', 'imdb_score'], inplace=True)
+
+        st.subheader("Identify High-Potential Talent")
+        max_titles_emerging = st.slider("Max Titles for 'Emerging' Status:", 1, 5, 3, key="emerging_max_titles")
+        min_avg_imdb_emerging = st.slider("Min Avg. IMDb Score for Spotlight:", 6.0, 9.0, 7.5, 0.1, key="emerging_min_imdb")
+
+        # Directors
+        directors_exploded_talent = df_talent.assign(person=df_talent['director'].str.split(', ')).explode('person')
+        directors_exploded_talent['person'] = directors_exploded_talent['person'].str.strip()
+        director_stats = directors_exploded_talent.groupby('person').agg(
+            title_count=('title', 'nunique'),
+            avg_imdb_score=('imdb_score', 'mean'),
+            avg_budget=('budget_millions', 'mean') if 'budget_millions' in df_talent.columns else pd.NamedAgg(column='title', aggfunc=lambda x: np.nan),
+            avg_views=('views_millions', 'mean') if 'views_millions' in df_talent.columns else pd.NamedAgg(column='title', aggfunc=lambda x: np.nan)
+        ).reset_index()
+        if 'avg_budget' in director_stats.columns and 'avg_views' in director_stats.columns:
+             director_stats['avg_roi'] = np.where(director_stats['avg_budget'] > 0.01, director_stats['avg_views'] / director_stats['avg_budget'], np.nan)
+        
+        emerging_directors = director_stats[
+            (director_stats['title_count'] <= max_titles_emerging) &
+            (director_stats['avg_imdb_score'] >= min_avg_imdb_emerging)
+        ].sort_values(by='avg_imdb_score', ascending=False)
+
+        st.markdown("#### Emerging Directors Spotlight")
+        if not emerging_directors.empty:
+            display_cols_directors = ['person', 'title_count', 'avg_imdb_score']
+            if 'avg_roi' in emerging_directors.columns: display_cols_directors.append('avg_roi')
+            st.dataframe(emerging_directors[display_cols_directors].rename(columns={'person': 'Director'}))
+        else:
+            st.info("No emerging directors found matching the criteria.")
+
+        # Actors
+        actors_exploded_talent = df_talent.assign(person=df_talent['cast'].str.split(', ')).explode('person')
+        actors_exploded_talent['person'] = actors_exploded_talent['person'].str.strip()
+        actor_stats = actors_exploded_talent.groupby('person').agg(
+            title_count=('title', 'nunique'),
+            avg_imdb_score=('imdb_score', 'mean'),
+            avg_budget=('budget_millions', 'mean') if 'budget_millions' in df_talent.columns else pd.NamedAgg(column='title', aggfunc=lambda x: np.nan),
+            avg_views=('views_millions', 'mean') if 'views_millions' in df_talent.columns else pd.NamedAgg(column='title', aggfunc=lambda x: np.nan)
+        ).reset_index()
+        if 'avg_budget' in actor_stats.columns and 'avg_views' in actor_stats.columns:
+            actor_stats['avg_roi'] = np.where(actor_stats['avg_budget'] > 0.01, actor_stats['avg_views'] / actor_stats['avg_budget'], np.nan)
+
+        emerging_actors = actor_stats[
+            (actor_stats['title_count'] <= max_titles_emerging) &
+            (actor_stats['avg_imdb_score'] >= min_avg_imdb_emerging)
+        ].sort_values(by='avg_imdb_score', ascending=False)
+
+        st.markdown("#### Emerging Actors Spotlight")
+        if not emerging_actors.empty:
+            display_cols_actors = ['person', 'title_count', 'avg_imdb_score']
+            if 'avg_roi' in emerging_actors.columns: display_cols_actors.append('avg_roi')
+            st.dataframe(emerging_actors[display_cols_actors].rename(columns={'person': 'Actor'}))
+        else:
+            st.info("No emerging actors found matching the criteria.")
+    else:
+        st.info("Required columns ('director', 'cast', 'title', 'imdb_score') not available for Emerging Talent Spotlight.")
+
+# Tool 50: Genre Synergy & Cross-Promotion Opportunities
+with st.expander("🔗 Tool 50: Genre Synergy & Cross-Promotion Opportunities"):
+    if 'listed_in' in df.columns and 'imdb_score' in df.columns:
+        df_synergy = df.copy()
+        df_synergy['imdb_score'] = pd.to_numeric(df_synergy['imdb_score'], errors='coerce')
+        if 'views_millions' in df_synergy.columns:
+            df_synergy['views_millions'] = pd.to_numeric(df_synergy['views_millions'], errors='coerce')
+        df_synergy.dropna(subset=['listed_in', 'imdb_score'], inplace=True)
+
+        if not df_synergy.empty:
+            genre_pairs_data = []
+            for index, row in df_synergy.iterrows():
+                genres = sorted(list(set(g.strip() for g in str(row['listed_in']).split(',') if g.strip())))
+                if len(genres) >= 2:
+                    for pair in combinations(genres, 2):
+                        genre_pairs_data.append({
+                            'pair': tuple(sorted(pair)), 
+                            'imdb_score': row['imdb_score'],
+                            'views_millions': row.get('views_millions', np.nan) # Safely get views
+                        })
+            
+            if genre_pairs_data:
+                genre_pairs_df = pd.DataFrame(genre_pairs_data)
+                genre_pair_stats = genre_pairs_df.groupby('pair').agg(
+                    count=('imdb_score', 'count'),
+                    avg_imdb_score=('imdb_score', 'mean'),
+                    avg_views_millions=('views_millions', 'mean')
+                ).reset_index()
+                
+                min_pair_occurrences = st.slider("Min Occurrences for Genre Pair Analysis:", 1, 10, 3, key="synergy_min_occur")
+                genre_pair_stats_filtered = genre_pair_stats[genre_pair_stats['count'] >= min_pair_occurrences]
+
+                st.subheader("Top Performing Genre Pairs by Average IMDb Score")
+                top_pairs_imdb = genre_pair_stats_filtered.sort_values(by='avg_imdb_score', ascending=False).head(10)
+                top_pairs_imdb['pair_str'] = top_pairs_imdb['pair'].apply(lambda x: f"{x[0]} & {x[1]}")
+                fig_synergy_imdb = px.bar(top_pairs_imdb, x='avg_imdb_score', y='pair_str', orientation='h',
+                                          title="Top Genre Pairs by Avg. IMDb Score", color='count',
+                                          color_continuous_scale='Viridis',
+                                          labels={'avg_imdb_score': 'Avg. IMDb Score', 'pair_str': 'Genre Pair', 'count': 'Co-occurrences'},
+                                          template="plotly_dark")
+                fig_synergy_imdb.update_layout(yaxis={'categoryorder':'total ascending'})
+                st.plotly_chart(fig_synergy_imdb, use_container_width=True)
+            else:
+                st.info("Not enough titles with multiple genres to analyze synergy.")
+        else:
+            st.info("Not enough valid data for 'listed_in' and 'imdb_score' to perform genre synergy analysis.")
+    else:
+        st.info("Required columns ('listed_in', 'imdb_score') not available for Genre Synergy Analysis.")
 
 st.markdown("---")
 st.markdown("**Netflix Data Analytics Dashboard** - Comprehensive toolkit for data analysis capstone projects")
