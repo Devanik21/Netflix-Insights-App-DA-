@@ -668,20 +668,6 @@ with st.expander("🎯 Tool 12: Content Recommendation Engine"):
     else:
         st.info("'listed_in' column not available for recommendations.")
 
-# Tool 13: Executive Summary Generator
-with st.expander("📄 Tool 13: Executive Summary Generator"):
-    summary_data = {
-        'Total Content': len(df) if not df.empty else 0,
-        'Content Mix': f"{len(df[df['type'] == 'Movie'])} Movies, {len(df[df['type'] == 'TV Show'])} TV Shows" if 'type' in df.columns and not df.empty else "N/A",
-        'Geographic Reach': f"{df['country'].nunique()} countries" if 'country' in df.columns and not df.empty else "N/A",
-        'Release Timeline': f"{df['release_year'].min()}-{df['release_year'].max()}" if 'release_year' in df.columns and not df.empty else "N/A",
-        'Top Genre': df['listed_in'].str.split(', ', expand=True).stack().value_counts().index[0] if 'listed_in' in df.columns and not df.empty and not df['listed_in'].dropna().empty else 'N/A'
-    }
-    
-    st.subheader("Executive Summary")
-    for key, value in summary_data.items():
-        st.write(f"**{key}**: {value}")
-
 # Tool 15: Data Export & Reporting
 with st.expander("📤 Tool 15: Data Export & Reporting"):
     export_format = st.selectbox("Export format:", ["CSV", "JSON", "Excel Summary"])
@@ -1282,38 +1268,6 @@ with st.expander("📅 Tool 34: Content Addition Trend (Yearly)"):
             st.write("No valid 'date_added' or 'type' data available for analysis.")
     else:
         st.info("'date_added' and 'type' columns are required for this analysis.")
-
-# Tool 35: Most Common Genres Analysis
-with st.expander("🎭 Tool 35: Most Common Genres Analysis"):
-    if 'listed_in' in df.columns:
-        st.subheader("Most Frequent Individual Genres")
-
-        df_tool35 = df.copy()
-        df_tool35.dropna(subset=['listed_in'], inplace=True)
-
-        if not df_tool35.empty:
-            # Split comma-separated genres and count each one
-            all_genres_list = []
-            for genres_str in df_tool35['listed_in']:
-                genres = [g.strip() for g in genres_str.split(',') if g.strip()]
-                all_genres_list.extend(genres)
-
-            if all_genres_list:
-                genre_counts = Counter(all_genres_list).most_common(20) # Get top 20 most common genres
-                genre_counts_df = pd.DataFrame(genre_counts, columns=['Genre', 'Frequency'])
-
-                fig_genres = px.bar(genre_counts_df, y='Genre', x='Frequency',
-                                      orientation='h', title="Top 20 Most Frequent Individual Genres",
-                                      labels={'Frequency': 'Number of Occurrences'},
-                                      template="plotly_dark")
-                fig_genres.update_layout(yaxis={'categoryorder':'total ascending'})
-                st.plotly_chart(fig_genres, use_container_width=True)
-            else:
-                st.write("No genres found in the 'listed_in' column.")
-        else:
-            st.write("No 'listed_in' data available for analysis.")
-    else:
-        st.info("'listed_in' column not available for genre frequency analysis.")
 
 # AI Powered Tools Section
 st.header("🧠 AI-Powered Tools")
@@ -2060,4 +2014,3 @@ with st.expander("💸 Tool 50: Budget Efficiency Tiers & ROI Analysis"):
 
 st.markdown("---")
 st.markdown("**Netflix Data Analytics Dashboard** - Comprehensive toolkit for data analysis capstone projects")
-
