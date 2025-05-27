@@ -647,8 +647,11 @@ st.header("🔬 Advanced Analytics")
 # Tool 14: AI-Powered Insights - MOVED TO AI SECTION
 # Tool 21: AI Chat with Dataset - MOVED TO AI SECTION
 
+# Tool 12: Content Recommendation Engine
+with st.expander("🎯 Tool 12: Content Recommendation Engine"):
+    if 'listed_in' in df.columns:
         user_genre = st.selectbox("Select preferred genre:",
-                                 ['Drama', 'Comedy', 'Action', 'Horror', 'Sci-Fi', 'Crime'])
+                                 ['Drama', 'Comedy', 'Action', 'Horror', 'Sci-Fi', 'Crime'], key="tool12_genre_select") # Added a key
         
         # Simple content-based filtering
         genre_matches = df[df['listed_in'].str.contains(user_genre, na=False)]
@@ -661,6 +664,8 @@ st.header("🔬 Advanced Analytics")
             
             st.subheader(f"Top {user_genre} Recommendations")
             st.dataframe(recommendations[['title', 'country', 'release_year']])
+    else:
+        st.info("'listed_in' column not available for recommendations.")
 
 # Tool 13: Executive Summary Generator
 with st.expander("📄 Tool 13: Executive Summary Generator"):
