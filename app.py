@@ -644,6 +644,9 @@ with st.expander("🔮 Tool 10: Predictive Analytics Dashboard"):
 # Advanced Analytics Tools
 st.header("🔬 Advanced Analytics")
 
+# Tool 14: AI-Powered Insights - MOVED TO AI SECTION
+# Tool 21: AI Chat with Dataset - MOVED TO AI SECTION
+
 # Tool 11: Statistical Summary
 with st.expander("📋 Tool 11: Statistical Summary Report"):
     st.subheader("Dataset Overview")
@@ -689,32 +692,50 @@ with st.expander("📄 Tool 13: Executive Summary Generator"):
     for key, value in summary_data.items():
         st.write(f"**{key}**: {value}")
 
-# Tool 14: AI-Powered Insights
-with st.expander("🤖 Tool 14: AI-Powered Insights"):
-    if gemini_key:
-        analysis_type = st.selectbox("Select analysis type:", 
-                                   ["Content Strategy", "Market Gaps", "Performance Insights", "Trend Predictions"])
+# Tool 11: Statistical Summary
+with st.expander("📋 Tool 11: Statistical Summary Report"):
+    st.subheader("Dataset Overview")
+    st.write(df.describe())
+    
+    st.subheader("Data Quality Report")
+    missing_data = df.isnull().sum()
+    st.write("Missing Values:", missing_data[missing_data > 0].to_dict())
+    
+    st.subheader("Categorical Analysis")
+    for col in df.select_dtypes(include=['object']).columns:
+        st.write(f"**{col}**: {df[col].nunique()} unique values")
+
+# Tool 12: Content Recommendation Engine
+with st.expander("🎯 Tool 12: Content Recommendation Engine"):
+    if 'listed_in' in df.columns:
+        user_genre = st.selectbox("Select preferred genre:", 
+                                 ['Drama', 'Comedy', 'Action', 'Horror', 'Sci-Fi', 'Crime'])
         
-        if st.button("Generate AI Insights"):
-            prompt = f"""
-            Analyze this Netflix dataset summary for {analysis_type}:
+        # Simple content-based filtering
+        genre_matches = df[df['listed_in'].str.contains(user_genre, na=False)]
+        
+        if not genre_matches.empty:
+            if 'imdb_score' in df.columns:
+                recommendations = genre_matches.nlargest(5, 'imdb_score')
+            else:
+                recommendations = genre_matches.head(5)
             
-            Dataset: {len(df)} titles
-            Content mix: {df['type'].value_counts().to_dict() if 'type' in df.columns else 'N/A'}
-            Top countries: {df['country'].value_counts().head(3).to_dict() if 'country' in df.columns else 'N/A'}
-            Release years: {df['release_year'].min()}-{df['release_year'].max() if 'release_year' in df.columns else 'N/A'}
-            
-            Provide 3-5 actionable insights for {analysis_type}.
-            """
-            
-            try:
-                model = genai.GenerativeModel("gemini-2.0-flash")
-                response = model.generate_content(prompt)
-                st.write(response.text)
-            except Exception as e:
-                st.error(f"Error: {e}")
-    else:
-        st.info("Enter Gemini API key to use AI insights")
+            st.subheader(f"Top {user_genre} Recommendations")
+            st.dataframe(recommendations[['title', 'country', 'release_year']])
+
+# Tool 13: Executive Summary Generator
+with st.expander("📄 Tool 13: Executive Summary Generator"):
+    summary_data = {
+        'Total Content': len(df) if not df.empty else 0,
+        'Content Mix': f"{len(df[df['type'] == 'Movie'])} Movies, {len(df[df['type'] == 'TV Show'])} TV Shows" if 'type' in df.columns and not df.empty else "N/A",
+        'Geographic Reach': f"{df['country'].nunique()} countries" if 'country' in df.columns and not df.empty else "N/A",
+        'Release Timeline': f"{df['release_year'].min()}-{df['release_year'].max()}" if 'release_year' in df.columns and not df.empty else "N/A",
+        'Top Genre': df['listed_in'].str.split(', ', expand=True).stack().value_counts().index[0] if 'listed_in' in df.columns and not df.empty and not df['listed_in'].dropna().empty else 'N/A'
+    }
+    
+    st.subheader("Executive Summary")
+    for key, value in summary_data.items():
+        st.write(f"**{key}**: {value}")
 
 # Tool 15: Data Export & Reporting
 with st.expander("📤 Tool 15: Data Export & Reporting"):
@@ -903,51 +924,6 @@ with st.expander("🔎 Tool 20: Genre Deep Dive"):
                 st.write(f"No titles found for the genre: {selected_genre}")
     else:
         st.info("Required columns (listed_in, release_year, imdb_score, title) not available for Genre Deep Dive.")
-
-# Tool 21: AI Chat with Dataset
-with st.expander("💬 Tool 21: AI Chat with Dataset"):
-    if gemini_key:
-        st.subheader("Ask a question about your dataset")
-        user_question = st.text_area("Your question:", height=100, placeholder="e.g., What are the top 5 countries with the most titles? or How many movies were released in 2020?")
-
-        if st.button("Ask AI 🤖"):
-            if user_question:
-                # Prepare a summary of the DataFrame for the AI
-                # Using .to_string() to get a string representation
-                # Limiting the head() and describe() output to keep the prompt concise
-                try:
-                    df_summary = f"""
-                    Here's a summary of the dataset I'm working with:
-                    Column Names: {df.columns.tolist()}
-                    Data Types:
-{df.dtypes.to_string()}
-                    First 5 Rows:
-{df.head().to_string()}
-                    Basic Statistics:
-{df.describe(include='all').head().to_string()} 
-                    Total rows: {len(df)}
-                    """
-
-                    prompt = f"""
-                    You are a data analysis assistant. Based *only* on the following dataset summary, please answer the user's question.
-                    If the information is not present in the summary or cannot be inferred, please state that.
-                    
-                    Dataset Summary:
-                    {df_summary}
-                    
-                    User's Question: {user_question}
-                    
-                    Answer:
-                    """
-                    model = genai.GenerativeModel("gemini-2.0-flash") 
-                    response = model.generate_content(prompt)
-                    st.markdown(response.text)
-                except Exception as e:
-                    st.error(f"An error occurred while querying the AI: {e}")
-            else:
-                st.warning("Please enter a question.")
-    else:
-        st.info("Please enter your Gemini API key in the sidebar to use the AI Chat feature.")
 
 # Tool 22: Content Freshness Analysis
 with st.expander("⏳ Tool 22: Content Freshness Analysis"):
@@ -1393,6 +1369,66 @@ with st.expander("🎭 Tool 35: Most Common Genres Analysis"):
             st.write("No 'listed_in' data available for analysis.")
     else:
         st.info("'listed_in' column not available for genre frequency analysis.")
+
+# AI Powered Tools Section
+st.header("🧠 AI-Powered Tools")
+
+# Tool 14: AI-Powered Insights
+with st.expander("🤖 Tool 14: AI-Powered Insights"):
+    if gemini_key:
+        analysis_type = st.selectbox("Select analysis type:", 
+                                   ["Content Strategy", "Market Gaps", "Performance Insights", "Trend Predictions"], key="ai_insights_type")
+        
+        if st.button("Generate AI Insights", key="ai_insights_button"):
+            prompt = f"""
+            Analyze this Netflix dataset summary for {analysis_type}:
+            
+            Dataset: {len(df)} titles
+            Content mix: {df['type'].value_counts().to_dict() if 'type' in df.columns else 'N/A'}
+            Top countries: {df['country'].value_counts().head(3).to_dict() if 'country' in df.columns else 'N/A'}
+            Release years: {df['release_year'].min()}-{df['release_year'].max() if 'release_year' in df.columns else 'N/A'}
+            
+            Provide 3-5 actionable insights for {analysis_type}.
+            """
+            
+            try:
+                model = genai.GenerativeModel("gemini-2.0-flash") # Ensure this model name is current
+                response = model.generate_content(prompt)
+                st.write(response.text)
+            except Exception as e:
+                st.error(f"Error generating AI insights: {e}")
+    else:
+        st.info("Enter Gemini API key in the sidebar to use AI-Powered Insights.")
+
+# Tool 21: AI Chat with Dataset
+with st.expander("💬 Tool 21: AI Chat with Dataset"):
+    if gemini_key:
+        st.subheader("Ask a question about your dataset")
+        user_question = st.text_area("Your question:", height=100, placeholder="e.g., What are the top 5 countries with the most titles? or How many movies were released in 2020?", key="ai_chat_question")
+
+        if st.button("Ask AI 🤖", key="ai_chat_button"):
+            if user_question:
+                try:
+                    df_summary = f"""
+                    Here's a summary of the dataset I'm working with:
+                    Column Names: {df.columns.tolist()}
+                    Data Types:\n{df.dtypes.to_string()}
+                    First 5 Rows:\n{df.head().to_string()}
+                    Basic Statistics (Head):\n{df.describe(include='all').head().to_string()} 
+                    Total rows: {len(df)}"""
+
+                    prompt = f"""You are a data analysis assistant. Based *only* on the following dataset summary, please answer the user's question. If the information is not present in the summary or cannot be inferred, please state that.
+                    Dataset Summary:\n{df_summary}\n\nUser's Question: {user_question}\n\nAnswer:"""
+                    
+                    model = genai.GenerativeModel("gemini-2.0-flash") # Ensure this model name is current
+                    response = model.generate_content(prompt)
+                    st.markdown(response.text)
+                except Exception as e:
+                    st.error(f"An error occurred while querying the AI: {e}")
+            else:
+                st.warning("Please enter a question.")
+    else:
+        st.info("Please enter your Gemini API key in the sidebar to use the AI Chat feature.")
 
 st.markdown("---")
 st.markdown("**Netflix Data Analytics Dashboard** - Comprehensive toolkit for data analysis capstone projects")
