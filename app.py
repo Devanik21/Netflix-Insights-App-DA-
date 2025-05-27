@@ -622,7 +622,7 @@ with st.expander("🔮 Tool 10: Predictive Analytics Dashboard"): # Renumbered (
 
         from sklearn.linear_model import LinearRegression
         from sklearn.model_selection import train_test_split
-        from sklearn.metrics import mean_absolute_error, mean_squared_error
+        from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
         df_model = df[['imdb_score', 'budget_millions', 'views_millions']].copy()
         # Ensure features are numeric, converting errors to NaN
