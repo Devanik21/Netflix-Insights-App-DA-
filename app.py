@@ -16,14 +16,14 @@ from itertools import combinations # Added for Tool 50
 
 
 
-
+st.set_page_config(page_title="Netflix Analytics Dashboard", layout="wide", page_icon="🎬")
 with st.sidebar:
     st.image("1.jpg", caption="Films beyond the firewall", use_container_width=True)
 
-st.set_page_config(page_title="Netflix Analytics Dashboard", layout="wide", page_icon="🎬")
-st.image("2.jpg", caption=" Code. Watch. Repeat.", use_container_width=True)
-st.title("🎬 Netflix Data Analytics Dashboard")
 
+
+st.title("🎬 Netflix Data Analytics Dashboard")
+st.image("2.jpg", caption=" Code. Watch. Repeat.", use_container_width=True)
 # Custom CSS for Dark Theme and Flashcards
 st.markdown("""
 <style>
