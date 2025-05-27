@@ -14,16 +14,9 @@ from collections import Counter
 
 from itertools import combinations # Added for Tool 50
 
-
-
 st.set_page_config(page_title="Netflix Analytics Dashboard", layout="wide", page_icon="🎬")
-with st.sidebar:
-    st.image("1.jpg", caption="Films beyond the firewall", use_container_width=True)
-
-
-
 st.title("🎬 Netflix Data Analytics Dashboard")
-st.image("2.jpg", caption=" Code. Watch. Repeat.", use_container_width=True)
+
 # Custom CSS for Dark Theme and Flashcards
 st.markdown("""
 <style>
@@ -618,10 +611,13 @@ with st.expander("📊 Tool 9: Content Gap Analysis"): # Renumbered (was 9)
 # Tool 10: Predictive Analytics Dashboard
 with st.expander("🔮 Tool 10: Predictive Analytics Dashboard"): # Renumbered (was 10)
     if 'imdb_score' in df.columns and 'views_millions' in df.columns:
-        st.info("""
-        **Disclaimer:** This is a simplified linear regression model for illustrative purposes only. 
-        It uses 'IMDb Score' and 'Budget (Millions)' to predict 'Views (Millions)'. 
-        Real-world viewership is influenced by many more complex factors.
+        st.info(f"""
+        **Disclaimer:** The models presented here (Simple Linear Regression, Polynomial Regression, SVR)
+        are for illustrative purposes. They use 'IMDb Score' and 'Budget (Millions)'
+        to predict 'Views (Millions)'. Real-world viewership is influenced by many more
+        complex factors, and robust model development requires careful feature engineering,
+        hyperparameter tuning, and cross-validation. The R-squared values here are on the test set.
+        Lower MAE/RMSE and higher R-squared (closer to 1) generally indicate better performance.
         """)
 
         from sklearn.linear_model import LinearRegression
@@ -629,6 +625,9 @@ with st.expander("🔮 Tool 10: Predictive Analytics Dashboard"): # Renumbered (
         from sklearn.metrics import mean_absolute_error, mean_squared_error
 
         df_model = df[['imdb_score', 'budget_millions', 'views_millions']].copy()
+        # Ensure features are numeric, converting errors to NaN
+        df_model['imdb_score'] = pd.to_numeric(df_model['imdb_score'], errors='coerce')
+        df_model['budget_millions'] = pd.to_numeric(df_model['budget_millions'], errors='coerce')
         df_model.dropna(inplace=True)
 
         if len(df_model) > 10: # Need enough data to split and train
@@ -636,35 +635,109 @@ with st.expander("🔮 Tool 10: Predictive Analytics Dashboard"): # Renumbered (
             y = df_model['views_millions']
             
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-            
-            model = LinearRegression().fit(X_train, y_train)
-            predictions = model.predict(X_test)
-            
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=y_test, y=predictions, mode='markers', name='Predicted vs Actual'))
-            fig.add_trace(go.Scatter(x=[y_test.min(), y_test.max()], y=[y_test.min(), y_test.max()], 
-                                    mode='lines', name='Perfect Prediction Line', line=dict(dash='dash')))
-            fig.update_layout(title="Viewership Prediction Model Performance (on Test Set)",
-                             xaxis_title="Actual Views (Millions)", yaxis_title="Predicted Views (Millions)",
-                             template="plotly_dark")
-            st.plotly_chart(fig, use_container_width=True)
-            
-            st.subheader("Model Evaluation Metrics (on Test Set)")
-            st.write(f"- R-squared (Coefficient of Determination): {model.score(X_test, y_test):.3f}")
-            st.write(f"- Mean Absolute Error (MAE): {mean_absolute_error(y_test, predictions):.2f} million views")
-            st.write(f"- Root Mean Squared Error (RMSE): {np.sqrt(mean_squared_error(y_test, predictions)):.2f} million views")
-            
-            st.subheader("Model Coefficients (Feature Importance)")
-            st.write(f"- IMDb Score Coefficient: {model.coef_[0]:.2f} (Change in views per 1 point IMDb score increase)")
-            st.write(f"- Budget (Millions) Coefficient: {model.coef_[1]:.2f} (Change in views per $1M budget increase)")
-            st.write(f"- Intercept: {model.intercept_:.2f} million views (Baseline predicted views if IMDb and Budget were 0)")
+
+            from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+            from sklearn.svm import SVR
+            from sklearn.pipeline import Pipeline
+
+            model_type = st.selectbox(
+                "Select Model Type:",
+                ["Simple Linear Regression", "Polynomial Regression", "Support Vector Regressor (SVR)"],
+                key="pred_model_type"
+            )
+
+            model = None
+            pipeline = None
+
+            if model_type == "Simple Linear Regression":
+                pipeline = Pipeline([
+                    ('scaler', StandardScaler()), # Good practice even for simple LR
+                    ('linear_regression', LinearRegression())
+                ])
+                pipeline.fit(X_train, y_train)
+                model = pipeline.named_steps['linear_regression']
+
+            elif model_type == "Polynomial Regression":
+                poly_degree = st.slider("Select Polynomial Degree:", 2, 5, 2, key="poly_degree_tool10")
+                pipeline = Pipeline([
+                    ('poly_features', PolynomialFeatures(degree=poly_degree, include_bias=False)),
+                    ('scaler', StandardScaler()),
+                    ('linear_regression', LinearRegression())
+                ])
+                pipeline.fit(X_train, y_train)
+                model = pipeline.named_steps['linear_regression']
+
+            elif model_type == "Support Vector Regressor (SVR)":
+                kernel = st.selectbox("Select SVR Kernel:", ['linear', 'rbf', 'poly'], key="svr_kernel_tool10")
+                c_param = st.number_input("SVR C (Regularization parameter):", 0.1, 100.0, 1.0, 0.1, key="svr_c_tool10")
+                gamma_param = "scale"
+                if kernel in ['rbf', 'poly']:
+                    gamma_param_option = st.selectbox("SVR Gamma:", ['scale', 'auto', 'custom_value'], key="svr_gamma_option_tool10")
+                    if gamma_param_option == 'custom_value':
+                        gamma_param = st.number_input("Custom Gamma value:", 0.001, 10.0, 0.1, 0.001, format="%.3f", key="svr_gamma_val_tool10")
+                    else:
+                        gamma_param = gamma_param_option
+                
+                pipeline = Pipeline([
+                    ('scaler', StandardScaler()),
+                    ('svr', SVR(kernel=kernel, C=c_param, gamma=gamma_param))
+                ])
+                pipeline.fit(X_train, y_train)
+                model = pipeline.named_steps['svr']
+
+            if pipeline: # If a model was selected and pipeline created
+                predictions = pipeline.predict(X_test)
+                
+                fig_pred = go.Figure()
+                fig_pred.add_trace(go.Scatter(x=y_test, y=predictions, mode='markers', name='Predicted vs Actual'))
+                fig_pred.add_trace(go.Scatter(x=[min(y_test.min(), predictions.min()), max(y_test.max(), predictions.max())], 
+                                        y=[min(y_test.min(), predictions.min()), max(y_test.max(), predictions.max())], 
+                                        mode='lines', name='Perfect Prediction Line', line=dict(dash='dash')))
+                fig_pred.update_layout(title=f"{model_type} - Model Performance (on Test Set)",
+                                 xaxis_title="Actual Views (Millions)", yaxis_title="Predicted Views (Millions)",
+                                 template="plotly_dark")
+                st.plotly_chart(fig_pred, use_container_width=True)
+                
+                st.subheader("Model Evaluation Metrics (on Test Set)")
+                r2 = r2_score(y_test, predictions)
+                mae = mean_absolute_error(y_test, predictions)
+                rmse = np.sqrt(mean_squared_error(y_test, predictions))
+                st.write(f"- R-squared: {r2:.3f}")
+                st.write(f"- Mean Absolute Error (MAE): {mae:.2f} million views")
+                st.write(f"- Root Mean Squared Error (RMSE): {rmse:.2f} million views")
+                
+                st.subheader("Model Insights")
+                if model_type == "Simple Linear Regression" and hasattr(model, 'coef_'):
+                    st.write(f"- IMDb Score Coefficient: {model.coef_[0]:.2f}")
+                    st.write(f"- Budget (Millions) Coefficient: {model.coef_[1]:.2f}")
+                    st.write(f"- Intercept: {model.intercept_:.2f} million views")
+                elif model_type == "Polynomial Regression" and hasattr(model, 'coef_'):
+                    poly_feature_names = pipeline.named_steps['poly_features'].get_feature_names_out(X_train.columns)
+                    st.write("Polynomial Feature Coefficients:")
+                    coeffs_df = pd.DataFrame({'Feature': poly_feature_names, 'Coefficient': model.coef_})
+                    st.dataframe(coeffs_df)
+                    st.write(f"- Intercept: {model.intercept_:.2f} million views")
+                elif model_type == "Support Vector Regressor (SVR)":
+                    if model.kernel == 'linear' and hasattr(model, 'coef_'):
+                        st.write(f"- IMDb Score Coefficient: {model.coef_[0][0]:.2f}")
+                        st.write(f"- Budget (Millions) Coefficient: {model.coef_[0][1]:.2f}")
+                    else:
+                        st.write("Coefficients are not directly interpretable for non-linear SVR kernels in the same way as linear models.")
+                    st.write(f"- Intercept: {model.intercept_[0]:.2f} million views (Note: SVR intercept interpretation can differ)")
+                    st.write(f"- Number of Support Vectors: {model.support_vectors_.shape[0]}")
 
             st.subheader("Try a Prediction")
             pred_imdb = st.number_input("Enter IMDb Score (e.g., 7.5):", min_value=0.0, max_value=10.0, value=7.0, step=0.1)
             pred_budget = st.number_input("Enter Budget (Millions, e.g., 50):", min_value=0.0, value=50.0, step=1.0)
-            if st.button("Predict Views"):
-                predicted_views = model.predict(pd.DataFrame([[pred_imdb, pred_budget]], columns=['imdb_score', 'budget_millions']))
-                st.success(f"Predicted Views: {predicted_views[0]:.2f} million")
+            
+            if st.button("Predict Views", key="predict_views_button_tool10"):
+                if pipeline:
+                    input_data = pd.DataFrame([[pred_imdb, pred_budget]], columns=['imdb_score', 'budget_millions'])
+                    # The pipeline will handle scaling and polynomial features if applicable
+                    predicted_views = pipeline.predict(input_data)
+                    st.success(f"Predicted Views ({model_type}): {predicted_views[0]:.2f} million")
+                else:
+                    st.warning("Please select and train a model first.")
         else:
             st.warning("Not enough data (after removing NaNs) to train and evaluate the predictive model. Need at least 10 data points.")
     else:
