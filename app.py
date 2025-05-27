@@ -197,14 +197,34 @@ def load_sample_netflix_data():
         'type': types_list,
         'title': np.random.choice(realistic_titles, num_titles, replace=True), # Use realistic titles
         'director': np.random.choice([
+            # Original Directors
             'Martin Scorsese', 'Steven Spielberg', 'Christopher Nolan', 'Quentin Tarantino',
             'Alfred Hitchcock', 'Stanley Kubrick', 'Greta Gerwig', 'Bong Joon-ho', 'Akira Kurosawa',
-            'Ingmar Bergman', 'Ridley Scott', 'Francis Ford Coppola', 'Pedro Almodóvar'
+            'Ingmar Bergman', 'Ridley Scott', 'Francis Ford Coppola', 'Pedro Almodóvar',
+            # Added Directors for Diversity
+            'Denis Villeneuve', 'Chloe Zhao', 'Taika Waititi', 'Jordan Peele', 'Barry Jenkins',
+            'Damien Chazelle', 'Ryan Coogler', 'Patty Jenkins', 'James Gunn', 'Lulu Wang',
+            'Ari Aster', 'Robert Eggers', 'Olivia Wilde', 'Emerald Fennell', 'Spike Lee',
+            'Jane Campion', 'Guillermo del Toro', 'Alfonso Cuarón', 'Alejandro G. Iñárritu',
+            'Lynne Ramsay', 'Debra Granik', 'Céline Sciamma', 'Julia Ducournau', 'David Fincher',
+            'Wes Anderson', 'Paul Thomas Anderson', 'Sofia Coppola', 'Kathryn Bigelow', 'Ava DuVernay',
+            'Steve McQueen (director)', 'Yorgos Lanthimos', 'Joachim Trier', 'Ryusuke Hamaguchi'
         ], num_titles),
         'cast': [', '.join(np.random.choice([
+            # Original Actors
             'Robert De Niro', 'Leonardo DiCaprio', 'Meryl Streep', 'Tom Hanks', 'Brad Pitt', 'Scarlett Johansson',
             'Denzel Washington', 'Cate Blanchett', 'Morgan Freeman', 'Natalie Portman', 'Joaquin Phoenix',
-            'Kate Winslet', 'Samuel L. Jackson', 'Julia Roberts', 'Johnny Depp'
+            'Kate Winslet', 'Samuel L. Jackson', 'Julia Roberts', 'Johnny Depp',
+            # Added Actors for Diversity
+            'Florence Pugh', 'Timothée Chalamet', 'Zendaya', 'Anya Taylor-Joy', 'Adam Driver',
+            'Saoirse Ronan', 'Mahershala Ali', 'Olivia Colman', 'Lakeith Stanfield', 'Daniel Kaluuya',
+            'Awkwafina', 'Steven Yeun', 'Riz Ahmed', 'Dev Patel', 'Margot Robbie', 'Oscar Isaac',
+            'Jessica Chastain', 'Michael B. Jordan', 'Lupita Nyong\'o', 'Emma Stone', 'Ryan Gosling',
+            'Viola Davis', 'Chadwick Boseman', 'Frances McDormand', 'Anthony Hopkins', 'Gary Oldman',
+            'Tom Hardy', 'Benedict Cumberbatch', 'Idris Elba', 'Tilda Swinton', 'Song Kang-ho',
+            'Choi Woo-shik', 'Park So-dam', 'Lee Jung-jae', 'HoYeon Jung', 'Gong Yoo',
+            'Ma Dong-seok', 'Kim Tae-ri', 'Jeon Yeo-been', 'Youn Yuh-jung', 'Han Hyo-joo',
+            'Sakura Ando', 'Kento Yamazaki', 'Tao Tsuchiya', 'Masami Nagasawa', 'Hiroshi Abe'
         ], size=np.random.randint(2, 5), replace=False)) for _ in range(num_titles)],
         'country': np.random.choice([
             'United States', 'United Kingdom', 'Canada', 'India', 'South Korea', 'Japan', 'France', 'Spain',
@@ -2072,8 +2092,8 @@ with st.expander("🌟 Tool 49: Emerging Talent Spotlight (Directors/Actors)"):
         df_talent.dropna(subset=['director', 'cast', 'title', 'imdb_score'], inplace=True)
 
         st.subheader("Identify High-Potential Talent")
-        max_titles_emerging = st.slider("Max Titles for 'Emerging' Status:", 1, 5, 3, key="emerging_max_titles")
-        min_avg_imdb_emerging = st.slider("Min Avg. IMDb Score for Spotlight:", 6.0, 9.0, 7.5, 0.1, key="emerging_min_imdb")
+        max_titles_emerging = st.slider("Max Titles for 'Emerging' Status (fewer titles = more 'emerging'):", 1, 15, 7, key="emerging_max_titles", help="Lower values mean stricter criteria for 'emerging'. Consider dataset size.")
+        min_avg_imdb_emerging = st.slider("Min Avg. IMDb Score for Spotlight:", 6.0, 9.5, 7.5, 0.1, key="emerging_min_imdb")
 
         # Directors
         directors_exploded_talent = df_talent.assign(person=df_talent['director'].str.split(', ')).explode('person')
