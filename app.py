@@ -504,13 +504,21 @@ with st.expander("🔮 Tool 10: Predictive Analytics Dashboard"): # Renumbered (
         # Ensure features are numeric, converting errors to NaN
         df_model['imdb_score'] = pd.to_numeric(df_model['imdb_score'], errors='coerce')
         df_model['budget_millions'] = pd.to_numeric(df_model['budget_millions'], errors='coerce')
+        # Ensure target variable is also numeric
+        df_model['views_millions'] = pd.to_numeric(df_model['views_millions'], errors='coerce')
         df_model.dropna(inplace=True)
 
-        if len(df_model) > 10: # Need enough data to split and train
+        st.markdown(f"**Data for Modeling:** After preprocessing and removing rows with missing values in 'IMDb Score', 'Budget (Millions)', or 'Views (Millions)', there are **{len(df_model)}** rows available for training and testing the predictive models.")
+
+        min_data_points_for_modeling = 30 # Increased threshold for more stable modeling
+
+        if len(df_model) >= min_data_points_for_modeling:
             X = df_model[['imdb_score', 'budget_millions']]
             y = df_model['views_millions']
             
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+            st.write(f"Training set size: {len(X_train)} samples. Test set size: {len(X_test)} samples.")
 
             from sklearn.preprocessing import PolynomialFeatures, StandardScaler
             from sklearn.svm import SVR
@@ -519,7 +527,7 @@ with st.expander("🔮 Tool 10: Predictive Analytics Dashboard"): # Renumbered (
             model_type = st.selectbox(
                 "Select Model Type:",
                 ["Simple Linear Regression", "Polynomial Regression", "Support Vector Regressor (SVR)"],
-                key="pred_model_type"
+                key="pred_model_type_tool10" # Added specific key
             )
 
             model = None
@@ -534,7 +542,7 @@ with st.expander("🔮 Tool 10: Predictive Analytics Dashboard"): # Renumbered (
                 model = pipeline.named_steps['linear_regression']
 
             elif model_type == "Polynomial Regression":
-                poly_degree = st.slider("Select Polynomial Degree:", 2, 5, 2, key="poly_degree_tool10")
+                poly_degree = st.slider("Select Polynomial Degree:", 2, 5, 2, key="poly_degree_selector_tool10") # Changed key
                 pipeline = Pipeline([
                     ('poly_features', PolynomialFeatures(degree=poly_degree, include_bias=False)),
                     ('scaler', StandardScaler()),
@@ -544,13 +552,13 @@ with st.expander("🔮 Tool 10: Predictive Analytics Dashboard"): # Renumbered (
                 model = pipeline.named_steps['linear_regression']
 
             elif model_type == "Support Vector Regressor (SVR)":
-                kernel = st.selectbox("Select SVR Kernel:", ['linear', 'rbf', 'poly'], key="svr_kernel_tool10")
-                c_param = st.number_input("SVR C (Regularization parameter):", 0.1, 100.0, 1.0, 0.1, key="svr_c_tool10")
+                kernel = st.selectbox("Select SVR Kernel:", ['linear', 'rbf', 'poly'], key="svr_kernel_selector_tool10") # Changed key
+                c_param = st.number_input("SVR C (Regularization parameter):", 0.1, 100.0, 1.0, 0.1, key="svr_c_param_tool10") # Changed key
                 gamma_param = "scale"
                 if kernel in ['rbf', 'poly']:
-                    gamma_param_option = st.selectbox("SVR Gamma:", ['scale', 'auto', 'custom_value'], key="svr_gamma_option_tool10")
+                    gamma_param_option = st.selectbox("SVR Gamma:", ['scale', 'auto', 'custom_value'], key="svr_gamma_option_selector_tool10") # Changed key
                     if gamma_param_option == 'custom_value':
-                        gamma_param = st.number_input("Custom Gamma value:", 0.001, 10.0, 0.1, 0.001, format="%.3f", key="svr_gamma_val_tool10")
+                        gamma_param = st.number_input("Custom Gamma value:", 0.001, 10.0, 0.1, 0.001, format="%.3f", key="svr_gamma_value_tool10") # Changed key
                     else:
                         gamma_param = gamma_param_option
                 
@@ -603,8 +611,8 @@ with st.expander("🔮 Tool 10: Predictive Analytics Dashboard"): # Renumbered (
                     st.write(f"- Number of Support Vectors: {model.support_vectors_.shape[0]}")
 
             st.subheader("Try a Prediction")
-            pred_imdb = st.number_input("Enter IMDb Score (e.g., 7.5):", min_value=0.0, max_value=10.0, value=7.0, step=0.1)
-            pred_budget = st.number_input("Enter Budget (Millions, e.g., 50):", min_value=0.0, value=50.0, step=1.0)
+            pred_imdb = st.number_input("Enter IMDb Score (e.g., 7.5):", min_value=0.0, max_value=10.0, value=7.0, step=0.1, key="pred_imdb_input_tool10") # Added key
+            pred_budget = st.number_input("Enter Budget (Millions, e.g., 50):", min_value=0.0, value=50.0, step=1.0, key="pred_budget_input_tool10") # Added key
             
             if st.button("Predict Views", key="predict_views_button_tool10"):
                 if pipeline:
@@ -615,7 +623,11 @@ with st.expander("🔮 Tool 10: Predictive Analytics Dashboard"): # Renumbered (
                 else:
                     st.warning("Please select and train a model first.")
         else:
-            st.warning("Not enough data (after removing NaNs) to train and evaluate the predictive model. Need at least 10 data points.")
+            st.warning(f"""
+            Not enough data (only {len(df_model)} rows) after cleaning to reliably train and evaluate the predictive model. 
+            A minimum of {min_data_points_for_modeling} data points with valid 'IMDb Score', 'Budget (Millions)', and 'Views (Millions)' is recommended.
+            Please check your `netflix_analysis.csv` file for these columns and ensure they contain sufficient numeric data.
+            """)
     else:
         st.info("IMDb score, budget, and/or viewership information not available for this predictive analysis.")
 
