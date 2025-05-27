@@ -18,10 +18,10 @@ from itertools import combinations # Added for Tool 50
 st.set_page_config(page_title="Netflix Analytics Dashboard", layout="wide", page_icon="🎬")
 
 with st.sidebar:
-    st.image("2.jpg", caption="🪞 Astral Mirror", use_container_width=True)
+    st.image("1.jpg", caption="Films beyond the firewall", use_container_width=True)
 
 
-st.image("1.jpg", caption="🪞 Astral Mirror", use_container_width=True)
+st.image("2.jpg", caption=" Code. Watch. Repeat.", use_container_width=True)
 st.title("🎬 Netflix Data Analytics Dashboard")
 
 # Custom CSS for Dark Theme and Flashcards
