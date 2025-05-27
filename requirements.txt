@@ -1,3 +1,4 @@
+xlsxwriter
 streamlit
 pandas
 plotly
