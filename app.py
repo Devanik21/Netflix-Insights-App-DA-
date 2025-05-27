@@ -586,6 +586,10 @@ with st.expander("🔮 Tool 10: Predictive Analytics Dashboard"): # Renumbered (
                 r2 = r2_score(y_test, predictions)
                 mae = mean_absolute_error(y_test, predictions)
                 rmse = np.sqrt(mean_squared_error(y_test, predictions))
+                
+                if r2 < 0:
+                    st.warning(f"Note: A negative R-squared ({r2:.3f}) indicates the model performs worse than simply predicting the average views. This suggests the chosen features ('IMDb Score', 'Budget') may not have a strong linear or simple non-linear relationship with 'Views (Millions)' in this dataset, or there isn't enough data.")
+
                 st.write(f"- R-squared: {r2:.3f}")
                 st.write(f"- Mean Absolute Error (MAE): {mae:.2f} million views")
                 st.write(f"- Root Mean Squared Error (RMSE): {rmse:.2f} million views")
