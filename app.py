@@ -1778,5 +1778,285 @@ with st.expander("🌐 Tool 42: Content Language Diversity & Performance"):
     else:
         st.info("Required columns ('language', 'imdb_score') not available for Language Diversity & Performance Analysis.")
 
+# Tool 43: Technical Aspects Analysis (Aspect Ratio & Sound Mix)
+with st.expander("🎞️ Tool 43: Technical Aspects Analysis (Aspect Ratio & Sound Mix)"):
+    if 'aspect_ratio' in df.columns and 'sound_mix' in df.columns and 'imdb_score' in df.columns:
+        df_tech = df.copy()
+        df_tech['imdb_score'] = pd.to_numeric(df_tech['imdb_score'], errors='coerce')
+        df_tech.dropna(subset=['aspect_ratio', 'sound_mix', 'imdb_score'], inplace=True)
+
+        if not df_tech.empty:
+            st.subheader("Aspect Ratio Analysis")
+            col_ar1, col_ar2 = st.columns(2)
+            with col_ar1:
+                ar_counts = df_tech['aspect_ratio'].value_counts()
+                fig_ar_dist = px.pie(ar_counts, values=ar_counts.values, names=ar_counts.index,
+                                     title="Content Distribution by Aspect Ratio", template="plotly_dark")
+                st.plotly_chart(fig_ar_dist, use_container_width=True)
+            with col_ar2:
+                avg_score_by_ar = df_tech.groupby('aspect_ratio')['imdb_score'].mean().reset_index().sort_values(by='imdb_score', ascending=False)
+                fig_ar_score = px.bar(avg_score_by_ar, x='aspect_ratio', y='imdb_score', color='aspect_ratio',
+                                      title="Average IMDb Score by Aspect Ratio", template="plotly_dark")
+                st.plotly_chart(fig_ar_score, use_container_width=True)
+
+            st.subheader("Sound Mix Analysis")
+            col_sm1, col_sm2 = st.columns(2)
+            with col_sm1:
+                sm_counts = df_tech['sound_mix'].value_counts()
+                fig_sm_dist = px.pie(sm_counts, values=sm_counts.values, names=sm_counts.index,
+                                     title="Content Distribution by Sound Mix", template="plotly_dark")
+                st.plotly_chart(fig_sm_dist, use_container_width=True)
+            with col_sm2:
+                avg_score_by_sm = df_tech.groupby('sound_mix')['imdb_score'].mean().reset_index().sort_values(by='imdb_score', ascending=False)
+                fig_sm_score = px.bar(avg_score_by_sm, x='sound_mix', y='imdb_score', color='sound_mix',
+                                      title="Average IMDb Score by Sound Mix", template="plotly_dark")
+                st.plotly_chart(fig_sm_score, use_container_width=True)
+        else:
+            st.info("Not enough valid data for Technical Aspects Analysis after cleaning.")
+    else:
+        st.info("Required columns ('aspect_ratio', 'sound_mix', 'imdb_score') not available for this analysis.")
+
+# Tool 44: Content Acquisition Lag & Performance
+with st.expander("⏳ Tool 44: Content Acquisition Lag & Performance"):
+    if 'release_year' in df.columns and 'date_added' in df.columns and 'imdb_score' in df.columns:
+        df_acq_lag = df.copy()
+        df_acq_lag['date_added'] = pd.to_datetime(df_acq_lag['date_added'], errors='coerce')
+        df_acq_lag['release_year'] = pd.to_numeric(df_acq_lag['release_year'], errors='coerce')
+        df_acq_lag['imdb_score'] = pd.to_numeric(df_acq_lag['imdb_score'], errors='coerce')
+        df_acq_lag.dropna(subset=['release_year', 'date_added', 'imdb_score'], inplace=True)
+
+        if not df_acq_lag.empty:
+            df_acq_lag['year_added'] = df_acq_lag['date_added'].dt.year
+            df_acq_lag['acquisition_lag_years'] = df_acq_lag['year_added'] - df_acq_lag['release_year']
+            df_acq_lag = df_acq_lag[df_acq_lag['acquisition_lag_years'] >= 0] # Ensure lag is not negative
+
+            if not df_acq_lag.empty:
+                st.subheader("Distribution of Content Acquisition Lag")
+                fig_lag_dist = px.histogram(df_acq_lag, x='acquisition_lag_years', nbins=30,
+                                            title="Content Acquisition Lag (Years Between Release and Addition to Netflix)",
+                                            labels={'acquisition_lag_years': 'Acquisition Lag (Years)'},
+                                            template="plotly_dark")
+                st.plotly_chart(fig_lag_dist, use_container_width=True)
+
+                st.subheader("IMDb Score vs. Acquisition Lag")
+                # Group by lag for clearer trend, especially if many data points
+                avg_score_by_lag = df_acq_lag.groupby(pd.cut(df_acq_lag['acquisition_lag_years'], bins=np.arange(0, df_acq_lag['acquisition_lag_years'].max() + 5, 5)))['imdb_score'].mean().reset_index()
+                avg_score_by_lag['acquisition_lag_years_mid'] = avg_score_by_lag['acquisition_lag_years'].apply(lambda x: x.mid)
+                
+                fig_lag_score = px.scatter(avg_score_by_lag, x='acquisition_lag_years_mid', y='imdb_score', trendline="ols",
+                                         title="Average IMDb Score vs. Acquisition Lag",
+                                         labels={'acquisition_lag_years_mid': 'Acquisition Lag (Years - Midpoint of Bin)', 'imdb_score': 'Average IMDb Score'},
+                                         template="plotly_dark")
+                st.plotly_chart(fig_lag_score, use_container_width=True)
+            else:
+                st.info("No valid data for acquisition lag analysis after filtering for non-negative lag.")
+        else:
+            st.info("Not enough valid data for Acquisition Lag analysis after cleaning.")
+    else:
+        st.info("Required columns ('release_year', 'date_added', 'imdb_score') not available for this analysis.")
+
+# Tool 45: Director & Actor Genre Affinity
+with st.expander("🎨 Tool 45: Director & Actor Genre Affinity"):
+    if 'director' in df.columns and 'cast' in df.columns and 'listed_in' in df.columns:
+        df_affinity = df.copy()
+        df_affinity.dropna(subset=['director', 'cast', 'listed_in'], inplace=True)
+
+        # Explode directors, actors, and genres
+        directors_exploded = df_affinity.assign(person=df_affinity['director'].str.split(', ')).explode('person')
+        actors_exploded = df_affinity.assign(person=df_affinity['cast'].str.split(', ')).explode('person')
+        
+        # Combine and get top people
+        all_people = pd.concat([directors_exploded['person'], actors_exploded['person']]).value_counts().nlargest(20).index.tolist()
+        
+        selected_person = st.selectbox("Select a Director or Actor:", all_people, key="person_genre_affinity")
+
+        if selected_person:
+            person_df = pd.concat([
+                directors_exploded[directors_exploded['person'] == selected_person],
+                actors_exploded[actors_exploded['person'] == selected_person]
+            ]).drop_duplicates(subset=['show_id']) # Avoid double counting if person is director and actor in same title
+
+            if not person_df.empty:
+                person_genres_exploded = person_df.assign(genre=person_df['listed_in'].str.split(', ')).explode('genre')
+                person_genres_exploded['genre'] = person_genres_exploded['genre'].str.strip()
+                genre_counts_person = person_genres_exploded['genre'].value_counts()
+
+                fig_person_genre = px.bar(genre_counts_person, x=genre_counts_person.index, y=genre_counts_person.values,
+                                          title=f"Genre Affinity for {selected_person}",
+                                          labels={'index': 'Genre', 'y': 'Number of Titles'},
+                                          template="plotly_dark")
+                st.plotly_chart(fig_person_genre, use_container_width=True)
+            else:
+                st.info(f"No titles found for {selected_person} to analyze genre affinity.")
+    else:
+        st.info("Required columns ('director', 'cast', 'listed_in') not available for this analysis.")
+
+# Tool 46: Title Characteristics vs. Performance
+with st.expander("📝 Tool 46: Title Characteristics vs. Performance"):
+    if 'title' in df.columns and 'imdb_score' in df.columns:
+        df_title_char = df.copy()
+        df_title_char['imdb_score'] = pd.to_numeric(df_title_char['imdb_score'], errors='coerce')
+        df_title_char.dropna(subset=['title', 'imdb_score'], inplace=True)
+        
+        df_title_char['title_word_count'] = df_title_char['title'].astype(str).apply(lambda x: len(x.split()))
+        
+        st.subheader("Title Length (Word Count) vs. IMDb Score")
+        fig_title_len_score = px.scatter(df_title_char, x='title_word_count', y='imdb_score', trendline="ols",
+                                         title="Title Word Count vs. IMDb Score",
+                                         labels={'title_word_count': 'Number of Words in Title', 'imdb_score': 'IMDb Score'},
+                                         template="plotly_dark")
+        st.plotly_chart(fig_title_len_score, use_container_width=True)
+
+        st.subheader("Impact of Numbers in Title on IMDb Score")
+        df_title_char['has_number_in_title'] = df_title_char['title'].astype(str).str.contains(r'\d').astype(int)
+        avg_score_by_number = df_title_char.groupby('has_number_in_title')['imdb_score'].mean().reset_index()
+        avg_score_by_number['has_number_in_title'] = avg_score_by_number['has_number_in_title'].map({0: 'No Number', 1: 'Has Number'})
+        fig_title_num_score = px.bar(avg_score_by_number, x='has_number_in_title', y='imdb_score', color='has_number_in_title',
+                                     title="Avg. IMDb Score: Titles With vs. Without Numbers", template="plotly_dark")
+        st.plotly_chart(fig_title_num_score, use_container_width=True)
+    else:
+        st.info("Required columns ('title', 'imdb_score') not available for this analysis.")
+
+# Tool 47: Simulated Franchise/Sequel Analysis
+with st.expander("🔗 Tool 47: Simulated Franchise/Sequel Analysis"):
+    if 'title' in df.columns and 'imdb_score' in df.columns:
+        df_franchise = df.copy()
+        df_franchise['imdb_score'] = pd.to_numeric(df_franchise['imdb_score'], errors='coerce')
+        df_franchise.dropna(subset=['title', 'imdb_score'], inplace=True)
+
+        # Regex patterns to identify potential sequels/franchises
+        # This is a heuristic and might need refinement
+        franchise_patterns = r'(?i)(\bPart\s*\d+\b|\b\d+\s*of\s*\d+\b|:\s*\w+|\b\d{1,2}\b$|\bII\b|\bIII\b|\bIV\b|\bV\b)'
+        df_franchise['is_potential_franchise'] = df_franchise['title'].astype(str).str.contains(franchise_patterns).astype(int)
+
+        st.subheader("Performance: Potential Franchise Titles vs. Standalone")
+        avg_score_by_franchise = df_franchise.groupby('is_potential_franchise')['imdb_score'].agg(['mean', 'count']).reset_index()
+        avg_score_by_franchise['is_potential_franchise'] = avg_score_by_franchise['is_potential_franchise'].map({0: 'Likely Standalone', 1: 'Potential Franchise/Sequel'})
+        
+        fig_franchise_score = px.bar(avg_score_by_franchise, x='is_potential_franchise', y='mean', color='is_potential_franchise',
+                                     title="Avg. IMDb Score: Potential Franchise vs. Standalone",
+                                     labels={'mean': 'Average IMDb Score', 'is_potential_franchise': ''},
+                                     text='count', template="plotly_dark")
+        fig_franchise_score.update_traces(texttemplate='%{text} titles', textposition='outside')
+        st.plotly_chart(fig_franchise_score, use_container_width=True)
+
+        st.caption("Note: Franchise identification is based on simple title patterns and is a simulation.")
+        st.write("Examples of titles identified as 'Potential Franchise/Sequel':")
+        st.dataframe(df_franchise[df_franchise['is_potential_franchise'] == 1][['title', 'imdb_score']].head())
+    else:
+        st.info("Required columns ('title', 'imdb_score') not available for this analysis.")
+
+# Tool 48: Genre Performance: Movies vs. TV Shows
+with st.expander("🎬🆚📺 Tool 48: Genre Performance - Movies vs. TV Shows"):
+    if 'listed_in' in df.columns and 'type' in df.columns and 'imdb_score' in df.columns:
+        df_genre_type = df.copy()
+        df_genre_type['imdb_score'] = pd.to_numeric(df_genre_type['imdb_score'], errors='coerce')
+        df_genre_type.dropna(subset=['listed_in', 'type', 'imdb_score'], inplace=True)
+
+        genre_type_exploded = df_genre_type.assign(genre=df_genre_type['listed_in'].str.split(', ')).explode('genre')
+        genre_type_exploded['genre'] = genre_type_exploded['genre'].str.strip()
+        
+        top_genres_for_comp = genre_type_exploded['genre'].value_counts().nlargest(10).index.tolist()
+        selected_genre_comp = st.selectbox("Select Genre for Movie vs. TV Show Comparison:", top_genres_for_comp, key="genre_type_comp_select")
+
+        if selected_genre_comp:
+            genre_specific_df = genre_type_exploded[genre_type_exploded['genre'] == selected_genre_comp]
+            
+            if not genre_specific_df.empty:
+                stats_by_type = genre_specific_df.groupby('type').agg(
+                    avg_imdb_score=('imdb_score', 'mean'),
+                    title_count=('title', 'count')
+                ).reset_index()
+
+                st.subheader(f"Comparison for '{selected_genre_comp}'")
+                col_gt1, col_gt2 = st.columns(2)
+                with col_gt1:
+                    fig_gt_score = px.bar(stats_by_type, x='type', y='avg_imdb_score', color='type',
+                                          title=f"Avg. IMDb Score in {selected_genre_comp}", template="plotly_dark")
+                    st.plotly_chart(fig_gt_score, use_container_width=True)
+                with col_gt2:
+                    fig_gt_count = px.bar(stats_by_type, x='type', y='title_count', color='type',
+                                          title=f"Number of Titles in {selected_genre_comp}", template="plotly_dark")
+                    st.plotly_chart(fig_gt_count, use_container_width=True)
+            else:
+                st.info(f"No data found for genre '{selected_genre_comp}' to compare Movies vs. TV Shows.")
+    else:
+        st.info("Required columns ('listed_in', 'type', 'imdb_score') not available for this analysis.")
+
+# Tool 49: Decade-wise Genre Evolution & Dominance
+with st.expander("📈 Tool 49: Decade-wise Genre Evolution & Dominance"):
+    if 'release_year' in df.columns and 'listed_in' in df.columns:
+        df_decade_genre = df.copy()
+        df_decade_genre['release_year'] = pd.to_numeric(df_decade_genre['release_year'], errors='coerce')
+        df_decade_genre.dropna(subset=['release_year', 'listed_in'], inplace=True)
+        
+        df_decade_genre['decade'] = (df_decade_genre['release_year'] // 10) * 10
+        
+        genre_decade_exploded = df_decade_genre.assign(genre=df_decade_genre['listed_in'].str.split(', ')).explode('genre')
+        genre_decade_exploded['genre'] = genre_decade_exploded['genre'].str.strip()
+        
+        # Focus on top N overall genres for clarity
+        top_n_overall_genres = genre_decade_exploded['genre'].value_counts().nlargest(7).index.tolist()
+        genre_decade_filtered = genre_decade_exploded[genre_decade_exploded['genre'].isin(top_n_overall_genres)]
+        
+        genre_counts_by_decade = genre_decade_filtered.groupby(['decade', 'genre']).size().reset_index(name='count')
+        
+        if not genre_counts_by_decade.empty:
+            fig_decade_genre = px.area(genre_counts_by_decade, x='decade', y='count', color='genre',
+                                       title="Evolution of Top Genre Popularity by Decade",
+                                       labels={'decade': 'Decade', 'count': 'Number of Titles'},
+                                       template="plotly_dark")
+            st.plotly_chart(fig_decade_genre, use_container_width=True)
+        else:
+            st.info("Not enough data to analyze genre evolution by decade for top genres.")
+    else:
+        st.info("Required columns ('release_year', 'listed_in') not available for this analysis.")
+
+# Tool 50: Budget Efficiency Tiers & ROI Analysis
+with st.expander("💸 Tool 50: Budget Efficiency Tiers & ROI Analysis"):
+    if 'budget_millions' in df.columns and 'views_millions' in df.columns and 'imdb_score' in df.columns:
+        df_budget_roi = df.copy()
+        df_budget_roi['budget_millions'] = pd.to_numeric(df_budget_roi['budget_millions'], errors='coerce')
+        df_budget_roi['views_millions'] = pd.to_numeric(df_budget_roi['views_millions'], errors='coerce')
+        df_budget_roi['imdb_score'] = pd.to_numeric(df_budget_roi['imdb_score'], errors='coerce')
+        df_budget_roi.dropna(subset=['budget_millions', 'views_millions', 'imdb_score'], inplace=True)
+
+        if not df_budget_roi.empty and df_budget_roi['budget_millions'].max() > 0:
+            df_budget_roi['roi'] = np.where(df_budget_roi['budget_millions'] > 0.01, df_budget_roi['views_millions'] / df_budget_roi['budget_millions'], np.nan)
+            df_budget_roi.dropna(subset=['roi'], inplace=True)
+
+            if not df_budget_roi.empty:
+                # Define budget tiers
+                # Using quantiles for dynamic tier definition
+                low_budget_threshold = df_budget_roi['budget_millions'].quantile(0.33)
+                mid_budget_threshold = df_budget_roi['budget_millions'].quantile(0.66)
+                
+                bins = [0, low_budget_threshold, mid_budget_threshold, df_budget_roi['budget_millions'].max() + 1]
+                labels = ['Low Budget', 'Medium Budget', 'High Budget']
+                df_budget_roi['budget_tier'] = pd.cut(df_budget_roi['budget_millions'], bins=bins, labels=labels, right=False)
+                df_budget_roi.dropna(subset=['budget_tier'], inplace=True) # Drop if any budget didn't fall into a tier
+
+                if not df_budget_roi.empty:
+                    st.subheader("ROI Distribution by Budget Tier")
+                    fig_roi_tier = px.box(df_budget_roi, x='budget_tier', y='roi', color='budget_tier',
+                                          title="Return on Investment (ROI) by Budget Tier",
+                                          labels={'budget_tier': 'Budget Tier', 'roi': 'ROI (Views/Budget)'},
+                                          template="plotly_dark")
+                    st.plotly_chart(fig_roi_tier, use_container_width=True)
+
+                    st.subheader("Average IMDb Score by Budget Tier")
+                    avg_imdb_by_tier = df_budget_roi.groupby('budget_tier')['imdb_score'].mean().reset_index()
+                    fig_imdb_tier = px.bar(avg_imdb_by_tier, x='budget_tier', y='imdb_score', color='budget_tier',
+                                           title="Average IMDb Score by Budget Tier", template="plotly_dark")
+                    st.plotly_chart(fig_imdb_tier, use_container_width=True)
+                else:
+                    st.info("Could not categorize content into budget tiers or no data left after tiering.")
+            else:
+                st.info("Not enough valid data to calculate ROI or analyze budget efficiency.")
+        else:
+            st.info("Not enough valid data for budget, views, or IMDb score to perform budget efficiency analysis.")
+    else:
+        st.info("Required columns ('budget_millions', 'views_millions', 'imdb_score') not available for this analysis.")
+
 st.markdown("---")
 st.markdown("**Netflix Data Analytics Dashboard** - Comprehensive toolkit for data analysis capstone projects")
