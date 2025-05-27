@@ -505,6 +505,12 @@ with st.expander("💰 Tool 7: Budget vs Performance ROI"):
         # A small epsilon can be used if near-zero budgets are possible and problematic
         df_roi['roi'] = np.where(df_roi['budget_millions'] > 0.01, df_roi['views_millions'] / df_roi['budget_millions'], np.nan)
         
+        # Filters for the plot
+        col_filter1, col_filter2, col_filter3 = st.columns(3)
+        log_x = col_filter1.checkbox("Log Scale for Budget (X-axis)", key="roi_log_x")
+        log_y = col_filter2.checkbox("Log Scale for ROI (Y-axis)", key="roi_log_y")
+        marker_opacity = col_filter3.slider("Marker Opacity:", 0.1, 1.0, 0.7, key="roi_opacity")
+
         # Filter out NaN ROI values for plotting
         df_roi_plot = df_roi.dropna(subset=['roi'])
 
@@ -512,13 +518,27 @@ with st.expander("💰 Tool 7: Budget vs Performance ROI"):
             fig = px.scatter(df_roi_plot, x='budget_millions', y='roi', color='type', 
                             size='imdb_score' if 'imdb_score' in df_roi_plot.columns else None,
                             title="Budget vs ROI Analysis",
-                            labels={'budget_millions': 'Budget (Millions)', 'roi': 'ROI (Views/Budget)'},
-                            template="plotly_dark")
+                            labels={'budget_millions': 'Budget (Millions)', 'roi': 'ROI (Views/Budget Ratio)'},
+                            template="plotly_dark",
+                            log_x=log_x, 
+                            log_y=log_y,
+                            opacity=marker_opacity)
+            
+            fig.update_traces(marker=dict(line=dict(width=0.5, color='DarkSlateGrey'))) # Add border to markers
+
             st.plotly_chart(fig, use_container_width=True)
             
-            high_roi = df_roi_plot.nlargest(5, 'roi')[['title', 'budget_millions', 'views_millions', 'roi']]
-            st.subheader("Best ROI Content (Top 5)")
-            st.dataframe(high_roi)
+            # Display top ROI content based on the potentially filtered df_roi_plot
+            if not df_roi_plot.empty:
+                display_cols_roi = ['title']
+                if 'budget_millions' in df_roi_plot.columns: display_cols_roi.append('budget_millions')
+                if 'views_millions' in df_roi_plot.columns: display_cols_roi.append('views_millions')
+                if 'roi' in df_roi_plot.columns: display_cols_roi.append('roi')
+                if 'type' in df_roi_plot.columns: display_cols_roi.append('type')
+                
+                high_roi = df_roi_plot.nlargest(5, 'roi')[display_cols_roi]
+                st.subheader("Top 5 Content by ROI (Return on Investment)")
+                st.dataframe(high_roi.style.format({"roi": "{:.2f}", "budget_millions": "{:.1f}", "views_millions": "{:.1f}"}))
         else:
             st.info("Not enough valid data to calculate or display ROI.")
     else:
@@ -535,13 +555,15 @@ with st.expander("🔗 Tool 8: Content Correlation Matrix"):
                        template="plotly_dark")
         st.plotly_chart(fig, use_container_width=True)
         
-        # Key insights
-        st.subheader("Key Correlations")
+        st.subheader("Key Correlation Insights")
+        corr_threshold = st.slider("Select Correlation Threshold:", 0.1, 1.0, 0.5, 0.05, key="corr_thresh_tool8")
         for i, col1 in enumerate(numeric_cols):
             for col2 in numeric_cols[i+1:]:
                 corr_val = corr_matrix.loc[col1, col2]
-                if abs(corr_val) > 0.5:
-                    st.write(f"{col1} ↔ {col2}: {corr_val:.3f}")
+                if abs(corr_val) >= corr_threshold:
+                    st.markdown(f"- **{col1} & {col2}**: `{corr_val:.3f}` ({'Positive' if corr_val > 0 else 'Negative'} Correlation)")
+    else:
+        st.info("Not enough numeric columns (at least 2) available in the dataset to generate a correlation matrix.")
 
 # Tool 9: Content Gap Analysis
 with st.expander("📊 Tool 9: Content Gap Analysis"):
@@ -567,29 +589,57 @@ with st.expander("📊 Tool 9: Content Gap Analysis"):
 # Tool 10: Predictive Analytics Dashboard
 with st.expander("🔮 Tool 10: Predictive Analytics Dashboard"):
     if 'imdb_score' in df.columns and 'views_millions' in df.columns:
-        # Simple trend prediction
+        st.info("""
+        **Disclaimer:** This is a simplified linear regression model for illustrative purposes only. 
+        It uses 'IMDb Score' and 'Budget (Millions)' to predict 'Views (Millions)'. 
+        Real-world viewership is influenced by many more complex factors.
+        """)
+
         from sklearn.linear_model import LinearRegression
-        
-        X = df[['imdb_score', 'budget_millions']].fillna(df[['imdb_score', 'budget_millions']].mean())
-        y = df['views_millions'].fillna(df['views_millions'].mean())
-        
-        model = LinearRegression().fit(X, y)
-        predictions = model.predict(X)
-        
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=y, y=predictions, mode='markers', name='Predicted vs Actual'))
-        fig.add_trace(go.Scatter(x=[y.min(), y.max()], y=[y.min(), y.max()], 
-                                mode='lines', name='Perfect Prediction'))
-        fig.update_layout(title="Viewership Prediction Model",
-                         xaxis_title="Actual Views", yaxis_title="Predicted Views",
-                         template="plotly_dark")
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Model insights
-        st.write(f"Model Score: {model.score(X, y):.3f}")
-        st.write("Feature Importance:")
-        st.write(f"IMDB Score: {model.coef_[0]:.2f}")
-        st.write(f"Budget: {model.coef_[1]:.2f}")
+        from sklearn.model_selection import train_test_split
+        from sklearn.metrics import mean_absolute_error, mean_squared_error
+
+        df_model = df[['imdb_score', 'budget_millions', 'views_millions']].copy()
+        df_model.dropna(inplace=True)
+
+        if len(df_model) > 10: # Need enough data to split and train
+            X = df_model[['imdb_score', 'budget_millions']]
+            y = df_model['views_millions']
+            
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            
+            model = LinearRegression().fit(X_train, y_train)
+            predictions = model.predict(X_test)
+            
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=y_test, y=predictions, mode='markers', name='Predicted vs Actual'))
+            fig.add_trace(go.Scatter(x=[y_test.min(), y_test.max()], y=[y_test.min(), y_test.max()], 
+                                    mode='lines', name='Perfect Prediction Line', line=dict(dash='dash')))
+            fig.update_layout(title="Viewership Prediction Model Performance (on Test Set)",
+                             xaxis_title="Actual Views (Millions)", yaxis_title="Predicted Views (Millions)",
+                             template="plotly_dark")
+            st.plotly_chart(fig, use_container_width=True)
+            
+            st.subheader("Model Evaluation Metrics (on Test Set)")
+            st.write(f"- R-squared (Coefficient of Determination): {model.score(X_test, y_test):.3f}")
+            st.write(f"- Mean Absolute Error (MAE): {mean_absolute_error(y_test, predictions):.2f} million views")
+            st.write(f"- Root Mean Squared Error (RMSE): {np.sqrt(mean_squared_error(y_test, predictions)):.2f} million views")
+            
+            st.subheader("Model Coefficients (Feature Importance)")
+            st.write(f"- IMDb Score Coefficient: {model.coef_[0]:.2f} (Change in views per 1 point IMDb score increase)")
+            st.write(f"- Budget (Millions) Coefficient: {model.coef_[1]:.2f} (Change in views per $1M budget increase)")
+            st.write(f"- Intercept: {model.intercept_:.2f} million views (Baseline predicted views if IMDb and Budget were 0)")
+
+            st.subheader("Try a Prediction")
+            pred_imdb = st.number_input("Enter IMDb Score (e.g., 7.5):", min_value=0.0, max_value=10.0, value=7.0, step=0.1)
+            pred_budget = st.number_input("Enter Budget (Millions, e.g., 50):", min_value=0.0, value=50.0, step=1.0)
+            if st.button("Predict Views"):
+                predicted_views = model.predict(pd.DataFrame([[pred_imdb, pred_budget]], columns=['imdb_score', 'budget_millions']))
+                st.success(f"Predicted Views: {predicted_views[0]:.2f} million")
+        else:
+            st.warning("Not enough data (after removing NaNs) to train and evaluate the predictive model. Need at least 10 data points.")
+    else:
+        st.info("IMDb score, budget, and/or viewership information not available for this predictive analysis.")
 
 # Advanced Analytics Tools
 st.header("🔬 Advanced Analytics")
@@ -675,11 +725,45 @@ with st.expander("📤 Tool 15: Data Export & Reporting"):
             csv = df.to_csv(index=False)
             st.download_button("Download CSV", csv, "netflix_analysis.csv", "text/csv")
         elif export_format == "JSON":
-            json_data = df.to_json(orient='records')
+            json_data = df.to_json(orient='records', indent=4)
             st.download_button("Download JSON", json_data, "netflix_analysis.json", "application/json")
-        else:
-            st.success("Excel summary prepared (implementation would generate comprehensive report)")
+        elif export_format == "Excel Summary":
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                df.to_excel(writer, sheet_name='Full Data', index=False)
+                
+                if not df.empty:
+                    df.describe(include='all').to_excel(writer, sheet_name='Summary Statistics')
 
+                    # Key Metrics Sheet
+                    metrics_data = {
+                        "Metric": ["Total Titles", "Movies", "TV Shows", "Unique Countries"],
+                        "Value": [
+                            len(df),
+                            len(df[df['type'] == 'Movie']) if 'type' in df.columns else 'N/A',
+                            len(df[df['type'] == 'TV Show']) if 'type' in df.columns else 'N/A',
+                            df['country'].nunique() if 'country' in df.columns else 'N/A'
+                        ]
+                    }
+                    pd.DataFrame(metrics_data).to_excel(writer, sheet_name='Key Metrics', index=False)
+
+                    if 'views_millions' in df.columns and 'title' in df.columns:
+                        df.nlargest(10, 'views_millions')[['title', 'views_millions']].to_excel(writer, sheet_name='Top Content (Views)', index=False)
+                    if 'imdb_score' in df.columns and 'title' in df.columns:
+                        df.nlargest(10, 'imdb_score')[['title', 'imdb_score']].to_excel(writer, sheet_name='Top Content (IMDb)', index=False)
+                    if 'listed_in' in df.columns:
+                        # Explode genres for accurate counting
+                        genres_exploded = df.assign(genre=df['listed_in'].str.split(', ')).explode('genre')
+                        genres_exploded['genre'].value_counts().to_excel(writer, sheet_name='Genre Counts', header=['Count'])
+                    if 'country' in df.columns:
+                        # Use primary country
+                        df.assign(primary_country=df['country'].astype(str).apply(lambda x: x.split(',')[0].strip()))['primary_country'].value_counts().to_excel(writer, sheet_name='Country Counts', header=['Count'])
+
+            excel_data = output.getvalue()
+            st.download_button(label="Download Excel Summary",
+                               data=excel_data,
+                               file_name="netflix_summary_report.xlsx",
+                               mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 # Tool 16: Director Performance Analysis
 with st.expander("🎬 Tool 16: Director Performance Analysis"):
     if 'director' in df.columns and 'title' in df.columns:
