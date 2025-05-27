@@ -124,151 +124,27 @@ h1, h2, h3, h4, h5, h6 {
 
 st.markdown("**Advanced Analytics Suite for Data Analyst Capstone Project**")
 
-# Enhanced sample Netflix dataset
-@st.cache_data
-def load_sample_netflix_data():
-    """Create a more comprehensive Netflix dataset for analysis."""
-    num_titles = 200  # Increased number of titles
-    # Generate 'type' data first
-    types_list = np.random.choice(['Movie', 'TV Show'], num_titles, p=[0.6, 0.4])
-    # Generate 'duration' based on the pre-generated 'types_list'
-    durations_list = [
-        f'{np.random.randint(60, 240)} min' if t == 'Movie' else f'{np.random.randint(1, 10)} Seasons'
-        for t in types_list
-    ]
-    # More realistic titles
-    realistic_titles = [
-        # Existing Titles
-        "Stranger Things", "The Crown", "Bridgerton", "Money Heist", "The Witcher", "Ozark", "Narcos",
-        "Black Mirror", "Squid Game", "Lupin", "Emily in Paris", "The Queen's Gambit", "Dark",
-        "You", "Sex Education", "Cobra Kai", "Outer Banks", "Never Have I Ever", "Lucifer", "Elite",
-        "The Umbrella Academy", "Dead to Me", "Russian Doll", "Mindhunter", "Peaky Blinders",
-        "Extraction", "The Irishman", "Bird Box", "Roma", "Marriage Story", "The Platform", "Enola Holmes",
-        "Project Power", "The Old Guard", "Spenser Confidential", "6 Underground", "Murder Mystery",
-        "The Kissing Booth", "To All the Boys I've Loved Before", "Always Be My Maybe", "Set It Up", # Approx 40
-        "The Social Dilemma", "My Octopus Teacher", "American Factory", "Tiger King", "Making a Murderer",
-        "Chef's Table", "Our Planet", "Explained", "Unorthodox", "When They See Us", "The Haunting of Hill House",
-        "Midnight Mass", "Maid", "Clickbait", "Behind Her Eyes", "Shadow and Bone", "Sweet Tooth",
-        "Virgin River", "Firefly Lane", "Ginny & Georgia", "The Circle", "Too Hot to Handle", "Love is Blind",
-        "Selling Sunset", "Bling Empire", "Floor Is Lava", "Nailed It!", "Queer Eye", "Rhythm + Flow",
-        "The Great British Baking Show", "Anne with an E", "Atypical", "BoJack Horseman", "Big Mouth",
-        "The Dragon Prince", "She-Ra and the Princesses of Power", "Hilda", "Klaus", "Over the Moon",
-        "The Mitchells vs. the Machines", "Vivo", "Wish Dragon", "I Lost My Body", "The Willoughbys",
-        "Next Gen", "Fear Street Trilogy", "Army of the Dead", "The Midnight Sky", "Don't Look Up", # Approx 100
-        "Red Notice", "The Adam Project", "The Gray Man", "Glass Onion: A Knives Out Mystery", "Hustle",
-        "The Sea Beast", "Slumberland", "Guillermo del Toro's Pinocchio", "Matilda the Musical",
-        "All Quiet on the Western Front", "Blonde", "White Noise", "The Pale Blue Eye", "You People",
-        "Luther: The Fallen Sun", "Murder Mystery 2", "A Tourist's Guide to Love", "The Mother",
-        "Extraction 2", "They Cloned Tyrone", "Heart of Stone", "Reptile", "The Killer", "Leave the World Behind",
-        "Rebel Moon: Part One – A Child of Fire", "Lift", "Damsel", "Spaceman", "Irish Wish",
-        "Wednesday", "The Diplomat", "The Night Agent", "Beef", "Queen Charlotte: A Bridgerton Story",
-        "XO, Kitty", "FUBAR", "Glamorous", "The Lincoln Lawyer", "Manifest", "Vikings: Valhalla",
-        "One Piece", "Avatar: The Last Airbender (Live Action)", "3 Body Problem", "The Gentlemen (Series)", # Approx 140
-        # Adding ~100 more diverse titles
-        "Breaking Bad", "Game of Thrones", "Friends", "The Office (US)", "Parks and Recreation", "Seinfeld",
-        "The Sopranos", "The Wire", "Chernobyl", "Band of Brothers", "Planet Earth II", "Blue Planet II",
-        "Cosmos: A Spacetime Odyssey", "Rick and Morty", "Attack on Titan", "Death Note", "Fullmetal Alchemist: Brotherhood",
-        "Cowboy Bebop", "Avatar: The Last Airbender (Animated)", "The Legend of Korra", "Sherlock", "Doctor Who",
-        "Better Call Saul", "Fargo", "True Detective", "Westworld", "The Mandalorian", "Ted Lasso", "Succession",
-        "The Boys", "Invincible", "Arcane", "Cyberpunk: Edgerunners", "Blue Eye Samurai", "The Bear", "Severance",
-        "Yellowjackets", "House of the Dragon", "The Last of Us (Series)", "Andor", "Loki", "WandaVision",
-        "The Simpsons", "South Park", "Family Guy", "Bob's Burgers", "Futurama", "King of the Hill",
-        "Pulp Fiction", "The Shawshank Redemption", "The Dark Knight", "Forrest Gump", "Inception", "The Matrix",
-        "Goodfellas", "Fight Club", "The Lord of the Rings: The Fellowship of the Ring", "Spirited Away", "Parasite",
-        "Interstellar", "Gladiator", "Saving Private Ryan", "The Green Mile", "City of God", "Amelie","Baby Reindeer", "Fallout", "Shōgun", "The Fall of the House of Usher", "Ripley", "3%", "Alice in Borderland", "Erased", "Baki Hanma", "Beef", "Bodies", "The Sandman", "Kaleidoscope", "Echoes", "1899", "The Watcher", "The Night Manager", "Bodyguard", "Top Boy", "Marcella", "Broadchurch", "Happy Valley", "Lupin Part 3", "The Serpent", "The End of the F***ing World", "White Lines", "Collateral", "Giri/Haji", "Criminal: UK", "Criminal: Spain", "Criminal: Germany", "The Chestnut Man", "The Valhalla Murders", "Who Killed Sara?", "The Rain", "Katla", "Into the Night", "Barbarians", "Tribes of Europa", "Betaal", "Sacred Games", "Delhi Crime", "Paatal Lok", "Made in Heaven", "Scam 1992", "Rocket Boys", "Asur", "The Family Man", "Farzi", "Kohrra", "Tabbar", "The Trial", "Ray", "Monica, O My Darling", "Jaane Jaan", "Dahaad", "Suzhal: The Vortex", "The Freelancer", "Kala Paani", "The Railway Men", "Mumbai Mafia", "Indian Predator: The Butcher of Delhi", "The Hunt for Veerappan", "MH370: The Plane That Disappeared", "Take Care of Maya", "Stutz", "The Deepest Breath", "American Nightmare", "Beckham", "Break Point", "Drive to Survive", "Quarterback", "Formula 1: Drive to Survive", "Tour de France: Unchained", "Full Swing", "The Redeem Team", "The Last Dance", "Untold: The Girlfriend Who Didn't Exist", "Untold: Johnny Football", "Untold: Swamp Kings", "Untold: Jake Paul", "Wrestlers", "Bad Sport", "Athlete A", "Icarus", "The Mind, Explained", "How to Change Your Mind", "Live to 100: Secrets of the Blue Zones", "Our Universe", "Secrets of the Saqqara Tomb", "Ancient Apocalypse", "Human Playground", "Connected", "The World’s Most Extraordinary Homes", "Tiny House Nation", "Dream Home Makeover", "Interior Design Masters",
-
-        "Pan's Labyrinth", "Oldboy (2003)", "A Separation", "The Lives of Others", "Train to Busan", "Shoplifters",
-        "Portrait of a Lady on Fire", "Everything Everywhere All at Once", "CODA", "Nomadland", "Drive My Car",
-        "Dune (2021)", "Blade Runner 2049", "Mad Max: Fury Road", "Whiplash", "La La Land", "Get Out",
-        "Moonlight", "Lady Bird", "Little Women (2019)", "The Grand Budapest Hotel", "Her", "Ex Machina",
-        "Arrival", "Sicario", "Hell or High Water", "Knives Out", "Once Upon a Time in Hollywood", "Joker",
-        "1917", "Tenet", "The Batman", "Top Gun: Maverick", "Oppenheimer", "Barbie", "Poor Things",
-        "Killers of the Flower Moon", "Anatomy of a Fall", "The Holdovers", "Past Lives", "Spider-Man: Into the Spider-Verse",
-        "Spider-Man: Across the Spider-Verse", "The Boy and the Heron", "Howl's Moving Castle", "Princess Mononoke",
-        "Your Name.", "Weathering with You", "A Silent Voice", "Grave of the Fireflies", "Perfect Blue",
-        "The Handmaiden", "Memories of Murder", "Burning", "Minari", "Sound of Metal", "Another Round",
-        "The Father", "Judas and the Black Messiah", "Promising Young Woman", "Nomadland", "The Power of the Dog",
-        "Drive", "Lost in Translation", "Eternal Sunshine of the Spotless Mind", "No Country for Old Men",
-        "There Will Be Blood", "The Social Network", "Zodiac", "Inglourious Basterds", "Django Unchained" # Added ~110 more
-    ]
-
-    sample_data = {
-        'show_id': [f's{i}' for i in range(1, num_titles + 1)],
-        'type': types_list,
-        'title': np.random.choice(realistic_titles, num_titles, replace=True), # Use realistic titles
-        'director': np.random.choice([
-            # Original Directors
-            'Martin Scorsese', 'Steven Spielberg', 'Christopher Nolan', 'Quentin Tarantino',
-            'Alfred Hitchcock', 'Stanley Kubrick', 'Greta Gerwig', 'Bong Joon-ho', 'Akira Kurosawa',
-            'Ingmar Bergman', 'Ridley Scott', 'Francis Ford Coppola', 'Pedro Almodóvar',
-            # Added Directors for Diversity
-            'Denis Villeneuve', 'Chloe Zhao', 'Taika Waititi', 'Jordan Peele', 'Barry Jenkins',
-            'Damien Chazelle', 'Ryan Coogler', 'Patty Jenkins', 'James Gunn', 'Lulu Wang',
-            'Ari Aster', 'Robert Eggers', 'Olivia Wilde', 'Emerald Fennell', 'Spike Lee',
-            'Jane Campion', 'Guillermo del Toro', 'Alfonso Cuarón', 'Alejandro G. Iñárritu',
-            'Lynne Ramsay', 'Debra Granik', 'Céline Sciamma', 'Julia Ducournau', 'David Fincher',
-            'Wes Anderson', 'Paul Thomas Anderson', 'Sofia Coppola', 'Kathryn Bigelow', 'Ava DuVernay',
-            'Steve McQueen (director)', 'Yorgos Lanthimos', 'Joachim Trier', 'Ryusuke Hamaguchi'
-        ], num_titles),
-        'cast': [', '.join(np.random.choice([
-            # Original Actors
-            'Robert De Niro', 'Leonardo DiCaprio', 'Meryl Streep', 'Tom Hanks', 'Brad Pitt', 'Scarlett Johansson',
-            'Denzel Washington', 'Cate Blanchett', 'Morgan Freeman', 'Natalie Portman', 'Joaquin Phoenix',
-            'Kate Winslet', 'Samuel L. Jackson', 'Julia Roberts', 'Johnny Depp',
-            # Added Actors for Diversity
-            'Florence Pugh', 'Timothée Chalamet', 'Zendaya', 'Anya Taylor-Joy', 'Adam Driver',
-            'Saoirse Ronan', 'Mahershala Ali', 'Olivia Colman', 'Lakeith Stanfield', 'Daniel Kaluuya',
-            'Awkwafina', 'Steven Yeun', 'Riz Ahmed', 'Dev Patel', 'Margot Robbie', 'Oscar Isaac',
-            'Jessica Chastain', 'Michael B. Jordan', 'Lupita Nyong\'o', 'Emma Stone', 'Ryan Gosling',
-            'Viola Davis', 'Chadwick Boseman', 'Frances McDormand', 'Anthony Hopkins', 'Gary Oldman',
-            'Tom Hardy', 'Benedict Cumberbatch', 'Idris Elba', 'Tilda Swinton', 'Song Kang-ho',
-            'Choi Woo-shik', 'Park So-dam', 'Lee Jung-jae', 'HoYeon Jung', 'Gong Yoo',
-            'Ma Dong-seok', 'Kim Tae-ri', 'Jeon Yeo-been', 'Youn Yuh-jung', 'Han Hyo-joo',
-            'Sakura Ando', 'Kento Yamazaki', 'Tao Tsuchiya', 'Masami Nagasawa', 'Hiroshi Abe'
-        ], size=np.random.randint(2, 5), replace=False)) for _ in range(num_titles)],
-        'country': np.random.choice([
-            'United States', 'United Kingdom', 'Canada', 'India', 'South Korea', 'Japan', 'France', 'Spain',
-            'Germany', 'Mexico', 'Brazil', 'Australia', 'China', 'Italy', 'Argentina'
-        ], num_titles, p=[0.32, 0.15, 0.1, 0.1, 0.05, 0.05, 0.04, 0.04, 0.03, 0.03, 0.02, 0.02, 0.02, 0.02, 0.01]), # Sum is now 1.0
-        'release_year': np.random.randint(2000, 2024, num_titles),
-        'rating': np.random.choice([
-            'G', 'PG', 'PG-13', 'R', 'NC-17', 'TV-Y', 'TV-Y7', 'TV-G', 'TV-PG', 'TV-14', 'TV-MA', 'UR'
-        ], num_titles, p=[0.05, 0.08, 0.12, 0.15, 0.02, 0.05, 0.06, 0.07, 0.1, 0.1, 0.18, 0.02]),
-        'duration': durations_list,
-        'listed_in': [', '.join(np.random.choice([
-            'Dramas', 'Comedies', 'Action & Adventure', 'Horror Movies', 'Thrillers', 'Sci-Fi & Fantasy',
-            'International Movies', 'Independent Movies', 'Romantic Movies', 'Documentaries', 'Crime Movies',
-            'Kids\' TV', 'TV Dramas', 'TV Comedies', 'Reality TV', 'Anime Series', 'Spanish-Language TV Shows',
-            'Korean TV Shows', 'British TV Shows', 'TV Action & Adventure', 'Classic Movies', 'Cult Movies',
-            'LGBTQ Movies', 'Music & Musicals', 'Sports Movies', 'Faith & Spirituality', 'Teen TV Shows',
-            'Romantic TV Shows', 'Science & Nature TV', 'Stand-Up Comedy', 'Talk Shows', 'Variety & Game Shows'
-        ], size=np.random.randint(1, 4), replace=False)) for _ in range(num_titles)],
-        'imdb_score': np.clip(np.random.normal(6.5, 1.2, num_titles), 2.0, 9.5).round(1),
-        'date_added': pd.to_datetime([
-            f'{np.random.randint(2015, 2024)}-{np.random.randint(1, 13):02d}-{np.random.randint(1, 29):02d}'
-            for _ in range(num_titles)
-        ]),
-        'budget_millions': np.random.uniform(1, 300, num_titles).round(1),
-        'views_millions': np.random.uniform(1, 800, num_titles).round(1),
-        'awards_won': np.random.randint(0, 50, num_titles),  # Awards won
-        'nomination_for_best_picture': np.random.choice([0, 1], num_titles, p=[0.9, 0.1]), #Binary: 0 for No, 1 for Yes
-        'nominations': np.random.randint(0, 100, num_titles), # Number of nominations        
-        'language': np.random.choice(['English', 'Spanish', 'French', 'German', 'Korean', 'Japanese', 'Hindi', 'Italian', 'Mandarin', 'Portuguese'], num_titles, p=[0.6, 0.1, 0.08, 0.05, 0.04, 0.03, 0.03, 0.02, 0.02, 0.03]),  # Language, sum is now 1.0
-        'aspect_ratio': np.random.choice(['16:9', '2.39:1', '4:3', '1.85:1'], num_titles), # Aspect Ratio
-        'sound_mix': np.random.choice(['Dolby Digital', 'Dolby Atmos', 'Stereo', 'Mono'], num_titles), # Sound Mix
-    }
-    return pd.DataFrame(sample_data)
 
 # Sidebar
 st.sidebar.header("📂 Data Source")
-file = st.sidebar.file_uploader("Upload Netflix dataset (CSV)", type="csv")
+st.sidebar.info("Using pre-loaded dataset: `netflix_analysis.csv`")
 
-if file is None:
-    st.sidebar.info("Using sample dataset")
-    df = load_sample_netflix_data()
-else:
-    df = pd.read_csv(file)
-    st.success("Custom dataset loaded!")
+# Attempt to load the pre-defined CSV file
+try:
+    df = pd.read_csv("netflix_analysis.csv")
+    st.sidebar.success("`netflix_analysis.csv` loaded successfully!")
+except FileNotFoundError:
+    st.sidebar.error("Error: `netflix_analysis.csv` not found in the application directory.")
+    st.error("CRITICAL ERROR: `netflix_analysis.csv` could not be loaded. Please ensure the file is in the same directory as the `app.py` script.")
+    # Create an empty DataFrame to prevent downstream errors, or st.stop()
+    df = pd.DataFrame() 
+    # Optionally, you could use st.stop() here to halt execution if the file is critical
+    # st.stop() 
+except Exception as e:
+    st.sidebar.error(f"An error occurred while loading `netflix_analysis.csv`: {e}")
+    st.error(f"An error occurred: {e}")
+    df = pd.DataFrame()
+    # st.stop()
 
 # Gemini API
 gemini_key = st.sidebar.text_input("🔑 Gemini API Key", type="password")
