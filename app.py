@@ -363,7 +363,7 @@ with st.expander("📈 Tool 2: Genre Trend Analysis"):
             
             # Determine top N genres
             num_top_genres = st.slider("Number of Top Genres to Display:", min_value=3, max_value=15, value=6, key="genre_slider_tool2")
-            top_genres_list = genre_df['genre'].value_counts().n_largest(num_top_genres).index.tolist()
+            top_genres_list = genre_df['genre'].value_counts().head(num_top_genres).index.tolist()
             
             genre_trends_top = genre_trends[genre_trends['genre'].isin(top_genres_list)].copy() # Use .copy()
             
