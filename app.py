@@ -525,16 +525,6 @@ with st.expander("💰 Tool 7: Budget vs Performance ROI"):
         st.info("Budget and/or viewership information not available for ROI analysis.")
 
 # Tool 8: Content Correlation Matrix
-with st.expander("🔗 Tool 8: Content Correlation Matrix"):
-                        title="Budget vs ROI Analysis",
-                        labels={'budget_millions': 'Budget (Millions)', 'roi': 'ROI (Views/Budget)'},
-                        template="plotly_dark")
-        st.plotly_chart(fig, use_container_width=True)
-        
-        high_roi = df.nlargest(5, 'roi')[['title', 'budget_millions', 'views_millions', 'roi']]
-        st.subheader("Best ROI Content")
-        st.dataframe(high_roi)
-
 # Tool 8: Content Correlation Matrix
 with st.expander("🔗 Tool 8: Content Correlation Matrix"):
     numeric_cols = df.select_dtypes(include=[np.number]).columns
