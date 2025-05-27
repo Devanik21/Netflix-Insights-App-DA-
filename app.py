@@ -2092,6 +2092,7 @@ with st.expander("🌟 Tool 49: Emerging Talent Spotlight (Directors/Actors)"):
         df_talent.dropna(subset=['director', 'cast', 'title', 'imdb_score'], inplace=True)
 
         st.subheader("Identify High-Potential Talent")
+        min_display_count = 5 # Desired minimum number of talents to display
         max_titles_emerging = st.slider("Max Titles for 'Emerging' Status (fewer titles = more 'emerging'):", 1, 20, 10, key="emerging_max_titles", help="Lower values mean stricter criteria for 'emerging'. Consider dataset size.")
         min_avg_imdb_emerging = st.slider("Min Avg. IMDb Score for Spotlight:", 6.0, 9.5, 7.5, 0.1, key="emerging_min_imdb") # Kept default min_avg_imdb
 
@@ -2107,18 +2108,29 @@ with st.expander("🌟 Tool 49: Emerging Talent Spotlight (Directors/Actors)"):
         if 'avg_budget' in director_stats.columns and 'avg_views' in director_stats.columns:
              director_stats['avg_roi'] = np.where(director_stats['avg_budget'] > 0.01, director_stats['avg_views'] / director_stats['avg_budget'], np.nan)
         
-        emerging_directors = director_stats[
+        emerging_directors_strict = director_stats[
             (director_stats['title_count'] <= max_titles_emerging) &
             (director_stats['avg_imdb_score'] >= min_avg_imdb_emerging)
         ].sort_values(by='avg_imdb_score', ascending=False)
 
+        emerging_directors_display = emerging_directors_strict
+        relaxed_directors_criteria = False
+        if len(emerging_directors_strict) < min_display_count and not director_stats.empty:
+            emerging_directors_display = director_stats.sort_values(
+                by=['avg_imdb_score', 'title_count'], 
+                ascending=[False, True]
+            ).head(min_display_count)
+            relaxed_directors_criteria = True
+
         st.markdown("#### Emerging Directors Spotlight")
-        if not emerging_directors.empty:
+        if not emerging_directors_display.empty:
+            if relaxed_directors_criteria:
+                st.caption(f"Note: Fewer than {min_display_count} directors met the strict 'emerging' criteria. Displaying top talents (up to {min_display_count}) by IMDb score, favoring fewer titles.")
             display_cols_directors = ['person', 'title_count', 'avg_imdb_score']
-            if 'avg_roi' in emerging_directors.columns: display_cols_directors.append('avg_roi')
-            st.dataframe(emerging_directors[display_cols_directors].rename(columns={'person': 'Director'}))
+            if 'avg_roi' in emerging_directors_display.columns: display_cols_directors.append('avg_roi')
+            st.dataframe(emerging_directors_display[display_cols_directors].rename(columns={'person': 'Director'}))
         else:
-            st.info("No emerging directors found matching the criteria.")
+            st.info("No emerging directors found to display based on the current data and criteria.")
 
         # Actors
         actors_exploded_talent = df_talent.assign(person=df_talent['cast'].str.split(', ')).explode('person')
@@ -2132,18 +2144,29 @@ with st.expander("🌟 Tool 49: Emerging Talent Spotlight (Directors/Actors)"):
         if 'avg_budget' in actor_stats.columns and 'avg_views' in actor_stats.columns:
             actor_stats['avg_roi'] = np.where(actor_stats['avg_budget'] > 0.01, actor_stats['avg_views'] / actor_stats['avg_budget'], np.nan)
 
-        emerging_actors = actor_stats[
+        emerging_actors_strict = actor_stats[
             (actor_stats['title_count'] <= max_titles_emerging) &
             (actor_stats['avg_imdb_score'] >= min_avg_imdb_emerging)
         ].sort_values(by='avg_imdb_score', ascending=False)
 
+        emerging_actors_display = emerging_actors_strict
+        relaxed_actors_criteria = False
+        if len(emerging_actors_strict) < min_display_count and not actor_stats.empty:
+            emerging_actors_display = actor_stats.sort_values(
+                by=['avg_imdb_score', 'title_count'],
+                ascending=[False, True]
+            ).head(min_display_count)
+            relaxed_actors_criteria = True
+
         st.markdown("#### Emerging Actors Spotlight")
-        if not emerging_actors.empty:
+        if not emerging_actors_display.empty:
+            if relaxed_actors_criteria:
+                st.caption(f"Note: Fewer than {min_display_count} actors met the strict 'emerging' criteria. Displaying top talents (up to {min_display_count}) by IMDb score, favoring fewer titles.")
             display_cols_actors = ['person', 'title_count', 'avg_imdb_score']
-            if 'avg_roi' in emerging_actors.columns: display_cols_actors.append('avg_roi')
-            st.dataframe(emerging_actors[display_cols_actors].rename(columns={'person': 'Actor'}))
+            if 'avg_roi' in emerging_actors_display.columns: display_cols_actors.append('avg_roi')
+            st.dataframe(emerging_actors_display[display_cols_actors].rename(columns={'person': 'Actor'}))
         else:
-            st.info("No emerging actors found matching the criteria.")
+            st.info("No emerging actors found to display based on the current data and criteria.")
     else:
         st.info("Required columns ('director', 'cast', 'title', 'imdb_score') not available for Emerging Talent Spotlight.")
 
