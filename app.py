@@ -410,16 +410,28 @@ with st.expander("📈 Tool 2: Genre Trend Analysis"):
 # Tool 3: Geographic Content Distribution
 with st.expander("🌍 Tool 3: Geographic Content Distribution"):
     if 'country' in df.columns:
-        country_data = df['country'].value_counts().head(10)
-        fig = px.bar(country_data, x=country_data.values, y=country_data.index, orientation='h',
-                    title="Content Production by Country", labels={'x': 'Number of Titles', 'y': 'Country'},
-                    template="plotly_dark")
-        st.plotly_chart(fig, use_container_width=True)
+        # Handle potential multiple countries per title by taking the first one for this aggregation
+        # Create a temporary series for this calculation to avoid modifying df
+        first_country_series = df['country'].astype(str).apply(lambda x: x.split(',')[0].strip() if pd.notna(x) else None).dropna()
         
-        # Market penetration analysis
-        st.subheader("Market Analysis")
-        market_share = (country_data / country_data.sum() * 100).round(2)
-        st.write("Market Share (%):", market_share.to_dict())
+        if not first_country_series.empty:
+            top_n_countries = 10
+            country_counts_top_n = first_country_series.value_counts().head(top_n_countries)
+            
+            fig = px.bar(country_counts_top_n, x=country_counts_top_n.values, y=country_counts_top_n.index, orientation='h',
+                    title=f"Top {top_n_countries} Countries by Content Production (Primary Country)", 
+                    labels={'x': 'Number of Titles', 'y': 'Country'},
+                    template="plotly_dark")
+            st.plotly_chart(fig, use_container_width=True)
+            
+            st.subheader(f"Share of Total Content for Top {top_n_countries} Countries")
+            total_titles_all_countries = len(first_country_series)
+            market_share_overall = (country_counts_top_n / total_titles_all_countries * 100).round(2)
+            st.dataframe(market_share_overall.rename("Share of Total Content (%)"))
+        else:
+            st.info("No valid country data to display.")
+    else:
+        st.info("Country information not available for this analysis.")
 
 # Tool 4: Content Duration Analysis
 with st.expander("⏱️ Tool 4: Content Duration Analysis"):
@@ -482,9 +494,38 @@ with st.expander("📅 Tool 6: Release Year Timeline"):
 # Tool 7: Budget vs Performance ROI
 with st.expander("💰 Tool 7: Budget vs Performance ROI"):
     if 'budget_millions' in df.columns and 'views_millions' in df.columns:
-        df['roi'] = df['views_millions'] / df['budget_millions']
+        df_roi = df.copy()
+        # Ensure relevant columns are numeric and handle NaNs by dropping rows for this specific analysis
+        df_roi['budget_millions'] = pd.to_numeric(df_roi['budget_millions'], errors='coerce')
+        df_roi['views_millions'] = pd.to_numeric(df_roi['views_millions'], errors='coerce')
+        df_roi.dropna(subset=['budget_millions', 'views_millions'], inplace=True)
+
+        # Calculate ROI, handling potential zero budget
+        # Replace with np.nan if budget is 0 or very small to avoid infinite ROI
+        # A small epsilon can be used if near-zero budgets are possible and problematic
+        df_roi['roi'] = np.where(df_roi['budget_millions'] > 0.01, df_roi['views_millions'] / df_roi['budget_millions'], np.nan)
         
-        fig = px.scatter(df, x='budget_millions', y='roi', color='type', size='imdb_score',
+        # Filter out NaN ROI values for plotting
+        df_roi_plot = df_roi.dropna(subset=['roi'])
+
+        if not df_roi_plot.empty:
+            fig = px.scatter(df_roi_plot, x='budget_millions', y='roi', color='type', 
+                            size='imdb_score' if 'imdb_score' in df_roi_plot.columns else None,
+                            title="Budget vs ROI Analysis",
+                            labels={'budget_millions': 'Budget (Millions)', 'roi': 'ROI (Views/Budget)'},
+                            template="plotly_dark")
+            st.plotly_chart(fig, use_container_width=True)
+            
+            high_roi = df_roi_plot.nlargest(5, 'roi')[['title', 'budget_millions', 'views_millions', 'roi']]
+            st.subheader("Best ROI Content (Top 5)")
+            st.dataframe(high_roi)
+        else:
+            st.info("Not enough valid data to calculate or display ROI.")
+    else:
+        st.info("Budget and/or viewership information not available for ROI analysis.")
+
+# Tool 8: Content Correlation Matrix
+with st.expander("🔗 Tool 8: Content Correlation Matrix"):
                         title="Budget vs ROI Analysis",
                         labels={'budget_millions': 'Budget (Millions)', 'roi': 'ROI (Views/Budget)'},
                         template="plotly_dark")
@@ -895,8 +936,8 @@ with st.expander("🗺️ Tool 23: Interactive World Map of Content Production")
 with st.expander("🎬 vs 📺 Tool 24: Movie vs. TV Show Deep Comparison"):
     if 'type' in df.columns:
         st.subheader("Movie vs. TV Show Metrics")
-        movies_df = df[df['type'] == 'Movie']
-        tv_shows_df = df[df['type'] == 'TV Show']
+        movies_df = df[df['type'] == 'Movie'].copy() # Explicitly create a copy
+        tv_shows_df = df[df['type'] == 'TV Show'].copy() # Explicitly create a copy
 
         col1, col2 = st.columns(2)
 
