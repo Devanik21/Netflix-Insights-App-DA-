@@ -1294,10 +1294,10 @@ with st.expander("📅 Tool 30: Content Addition Trend (Yearly)"): # Renumbered 
 st.header("🧠 AI-Powered Tools")
 
 # Tool 31: AI-Powered Insights
-with st.expander("🤖 Tool 31: AI-Powered Insights"): # Renumbered (was 14)
+with st.expander("🤖 Tool 31: AI-Powered General Insights"): # Renumbered (was 14)
     if gemini_key:
         analysis_type = st.selectbox("Select analysis type:", 
-                                   ["Content Strategy", "Market Gaps", "Performance Insights", "Trend Predictions"], key="ai_insights_type") # Key remains as is
+                                   ["Overall Content Strategy", "Potential Market Gaps", "Key Performance Drivers", "Future Trend Predictions"], key="ai_insights_type") 
         
         if st.button("Generate AI Insights", key="ai_insights_button"):
             prompt = f"""
@@ -1308,7 +1308,7 @@ with st.expander("🤖 Tool 31: AI-Powered Insights"): # Renumbered (was 14)
             Top countries: {df['country'].value_counts().head(3).to_dict() if 'country' in df.columns else 'N/A'}
             Release years: {df['release_year'].min()}-{df['release_year'].max() if 'release_year' in df.columns else 'N/A'}
             
-            Provide 3-5 actionable insights for {analysis_type}.
+            Provide 3-5 concise, actionable insights for {analysis_type} based on the provided Netflix dataset summary. Focus on high-level strategic points.
             """
             
             try:
@@ -1324,9 +1324,9 @@ with st.expander("🤖 Tool 31: AI-Powered Insights"): # Renumbered (was 14)
 with st.expander("💬 Tool 32: AI Chat with Dataset"): # Renumbered (was 21)
     if gemini_key:
         st.subheader("Ask a question about your dataset")
-        user_question = st.text_area("Your question:", height=100, placeholder="e.g., What are the top 5 countries with the most titles? or How many movies were released in 2020?", key="ai_chat_question") # Key remains as is
+        user_question = st.text_area("Your question:", height=100, placeholder="e.g., What are the top 5 countries with the most titles? or How many movies were released in 2020?", key="ai_chat_question") 
 
-        if st.button("Ask AI 🤖", key="ai_chat_button"): # Key remains as is
+        if st.button("Ask AI 🤖", key="ai_chat_button"): 
             if user_question:
                 try:
                     df_summary = f"""
@@ -1350,10 +1350,98 @@ with st.expander("💬 Tool 32: AI Chat with Dataset"): # Renumbered (was 21)
     else:
         st.info("Please enter your Gemini API key in the sidebar to use the AI Chat feature.")
 
+# Tool 33: AI-Generated Content Summaries
+with st.expander("✍️ Tool 33: AI-Generated Content Summaries"):
+    if gemini_key:
+        if 'title' in df.columns and 'type' in df.columns and 'listed_in' in df.columns:
+            st.subheader("Generate a Netflix-Style Summary")
+            available_titles = df['title'].dropna().unique().tolist()
+            if available_titles:
+                selected_title_for_summary = st.selectbox("Select a title from your dataset:", available_titles, key="ai_summary_title_select")
+                
+                if st.button("Generate Summary", key="ai_generate_summary_button"):
+                    if selected_title_for_summary:
+                        title_details = df[df['title'] == selected_title_for_summary].iloc[0]
+                        content_type = title_details.get('type', 'N/A')
+                        genres = title_details.get('listed_in', 'N/A')
+
+                        prompt = f"""
+                        Generate a short, engaging, and creative summary (around 2-3 sentences) suitable for a Netflix-style preview for the following content:
+                        Title: {selected_title_for_summary}
+                        Type: {content_type}
+                        Genre(s): {genres}
+                        Make it sound exciting and hint at the core themes or plot without giving away major spoilers.
+                        """
+                        try:
+                            model = genai.GenerativeModel("gemini-1.5-flash-latest")
+                            response = model.generate_content(prompt)
+                            st.markdown("#### Generated Summary:")
+                            st.success(response.text)
+                        except Exception as e:
+                            st.error(f"Error generating summary: {e}")
+            else:
+                st.info("No titles available in the dataset to generate summaries for.")
+        else:
+            st.info("Dataset must contain 'title', 'type', and 'listed_in' columns for this feature.")
+    else:
+        st.info("Enter Gemini API key in the sidebar to use AI-Generated Content Summaries.")
+
+# Tool 34: AI-Generated Title Suggestions
+with st.expander("💡 Tool 34: AI-Generated Title Suggestions"):
+    if gemini_key:
+        st.subheader("Get Creative Title Ideas")
+        theme_keywords = st.text_input("Enter a theme, keywords, or a brief concept:", placeholder="e.g., space opera, romantic comedy in Paris, a detective solving ancient mysteries", key="ai_title_gen_theme")
+        content_type_suggestion = st.selectbox("Select content type:", ["Movie", "TV Show", "Documentary", "Miniseries"], key="ai_title_gen_type")
+
+        if st.button("Suggest Titles", key="ai_suggest_titles_button"):
+            if theme_keywords:
+                prompt = f"""
+                Generate 5 creative and catchy title suggestions for a new {content_type_suggestion} based on the following theme/keywords/concept: '{theme_keywords}'.
+                The titles should be suitable for a streaming platform like Netflix. For each suggestion, provide a brief (1-sentence) rationale or angle.
+                Format each suggestion as:
+                Title: [Generated Title]
+                Rationale: [Brief Rationale]
+                """
+                try:
+                    model = genai.GenerativeModel("gemini-1.5-flash-latest")
+                    response = model.generate_content(prompt)
+                    st.markdown("#### Title Suggestions:")
+                    st.markdown(response.text) # Gemini is good at following formatting
+                except Exception as e:
+                    st.error(f"Error generating title suggestions: {e}")
+            else:
+                st.warning("Please enter a theme or keywords.")
+    else:
+        st.info("Enter Gemini API key in the sidebar to use AI-Generated Title Suggestions.")
+
+# Tool 35: AI-Driven Sentiment Analysis of Reviews
+with st.expander("😊 Tool 35: AI-Driven Sentiment Analysis (Simulated Review)"):
+    if gemini_key:
+        st.subheader("Analyze Sentiment of a Hypothetical Review")
+        review_text = st.text_area("Paste a review text here:", height=150, placeholder="e.g., 'This movie was absolutely fantastic, the acting was superb!' or 'Terrible plot, I was bored the whole time.'", key="ai_sentiment_review_text")
+        if st.button("Analyze Sentiment", key="ai_analyze_sentiment_button"):
+            if review_text:
+                prompt = f"""Analyze the sentiment of the following review. Classify it as Positive, Negative, or Neutral. Also, provide a brief (1-sentence) explanation for your classification.
+Review: "{review_text}"
+
+Sentiment: [Positive/Negative/Neutral]
+Explanation: ..."""
+                try:
+                    model = genai.GenerativeModel("gemini-1.5-flash-latest")
+                    response = model.generate_content(prompt)
+                    st.markdown("#### Sentiment Analysis Result:")
+                    st.info(response.text)
+                except Exception as e:
+                    st.error(f"Error analyzing sentiment: {e}")
+            else:
+                st.warning("Please enter a review text to analyze.")
+    else:
+        st.info("Enter Gemini API key in the sidebar to use AI-Driven Sentiment Analysis.")
+
 st.header("🔍 Deeper Analytical Perspectives")
 
-# Tool 33: Content Lifecycle Analysis
-with st.expander("🔄 Tool 33: Content Lifecycle Analysis"): # Renumbered (was 36)
+# Tool 36: Content Lifecycle Analysis
+with st.expander("🔄 Tool 36: Content Lifecycle Analysis"): # Renumbered (was 33, originally 36)
     if 'release_year' in df.columns and 'date_added' in df.columns and 'imdb_score' in df.columns:
         df_lifecycle = df.copy()
         df_lifecycle['date_added'] = pd.to_datetime(df_lifecycle['date_added'], errors='coerce')
@@ -1395,8 +1483,8 @@ with st.expander("🔄 Tool 33: Content Lifecycle Analysis"): # Renumbered (was 
     else:
         st.info("Required columns ('release_year', 'date_added', 'imdb_score') not available for Content Lifecycle Analysis.")
 
-# Tool 34: "Hidden Gems" Detector
-with st.expander("💎 Tool 34: 'Hidden Gems' Detector"): # Renumbered (was 37)
+# Tool 37: "Hidden Gems" Detector
+with st.expander("💎 Tool 37: 'Hidden Gems' Detector"): # Renumbered (was 34, originally 37)
     if 'imdb_score' in df.columns and ('views_millions' in df.columns or 'budget_millions' in df.columns) and 'title' in df.columns:
         df_gems = df.copy()
         df_gems['imdb_score'] = pd.to_numeric(df_gems['imdb_score'], errors='coerce')
@@ -1421,20 +1509,20 @@ with st.expander("💎 Tool 34: 'Hidden Gems' Detector"): # Renumbered (was 37)
             if not df_gems.empty:
                 st.subheader("Define 'Hidden Gem' Criteria")
                 col_gem1, col_gem2 = st.columns(2)
-                min_imdb = col_gem1.slider("Minimum IMDb Score for a Gem:", 5.0, 9.5, 7.5, 0.1, key="gem_min_imdb") # Key remains as is
+                min_imdb = col_gem1.slider("Minimum IMDb Score for a Gem:", 5.0, 9.5, 7.5, 0.1, key="gem_min_imdb_tool37") 
                 
                 if performance_metric_col == 'views_millions':
                     max_performance = col_gem2.slider(f"Maximum {performance_label} for a Gem:", 
                                                       float(df_gems[performance_metric_col].min()), 
                                                       float(df_gems[performance_metric_col].quantile(0.75)), # Avoid extreme max
                                                       float(df_gems[performance_metric_col].quantile(0.25)), # Default to lower quartile
-                                                      key="gem_max_perf") # Key remains as is
+                                                      key="gem_max_perf_tool37") 
                 else: # budget_millions
                      max_performance = col_gem2.slider(f"Maximum {performance_label} for a Gem:", 
                                                       float(df_gems[performance_metric_col].min()), 
                                                       float(df_gems[performance_metric_col].quantile(0.75)), 
                                                       float(df_gems[performance_metric_col].quantile(0.5)), # Default to median for budget
-                                                      key="gem_max_perf_budget") # Key remains as is
+                                                      key="gem_max_perf_budget_tool37") 
 
                 hidden_gems_df = df_gems[
                     (df_gems['imdb_score'] >= min_imdb) & 
@@ -1466,8 +1554,8 @@ with st.expander("💎 Tool 34: 'Hidden Gems' Detector"): # Renumbered (was 37)
     else:
         st.info("Required columns ('imdb_score', 'title', and 'views_millions' or 'budget_millions') not available for Hidden Gems Detector.")
 
-# Tool 35: Genre Popularity vs. Saturation Matrix
-with st.expander("🎯 Tool 35: Genre Popularity vs. Saturation Matrix"): # Renumbered (was 38)
+# Tool 38: Genre Popularity vs. Saturation Matrix
+with st.expander("🎯 Tool 38: Genre Popularity vs. Saturation Matrix"): # Renumbered (was 35, originally 38)
     if 'listed_in' in df.columns and 'imdb_score' in df.columns:
         df_genre_matrix = df.copy()
         df_genre_matrix['imdb_score'] = pd.to_numeric(df_genre_matrix['imdb_score'], errors='coerce')
@@ -1521,8 +1609,8 @@ with st.expander("🎯 Tool 35: Genre Popularity vs. Saturation Matrix"): # Renu
     else:
         st.info("Required columns ('listed_in', 'imdb_score') not available for Genre Popularity vs. Saturation Matrix.")
 
-# Tool 36: N-gram Analysis on Titles
-with st.expander("🔑 Tool 36: N-gram Analysis on Titles"): # Renumbered (was 39)
+# Tool 39: N-gram Analysis on Titles
+with st.expander("🔑 Tool 39: N-gram Analysis on Titles"): # Renumbered (was 36, originally 39)
     if 'title' in df.columns:
         from sklearn.feature_extraction.text import CountVectorizer
 
@@ -1571,8 +1659,8 @@ with st.expander("🔑 Tool 36: N-gram Analysis on Titles"): # Renumbered (was 3
     else:
         st.info("'title' column not available for N-gram Analysis.")
 
-# Tool 37: User Persona-Based Recommendations (Simulated)
-with st.expander("👤 Tool 37: User Persona-Based Recommendations (Simulated)"): # Renumbered (was 40)
+# Tool 40: User Persona-Based Recommendations (Simulated)
+with st.expander("👤 Tool 40: User Persona-Based Recommendations (Simulated)"): # Renumbered (was 37, originally 40)
     if 'type' in df.columns and 'listed_in' in df.columns and 'imdb_score' in df.columns and 'rating' in df.columns:
         df_persona = df.copy()
         df_persona['imdb_score'] = pd.to_numeric(df_persona['imdb_score'], errors='coerce')
@@ -1605,7 +1693,7 @@ with st.expander("👤 Tool 37: User Persona-Based Recommendations (Simulated)")
             }
         }
 
-        selected_persona_name = st.selectbox("Select a User Persona:", list(personas.keys()), key="persona_select") # Key remains as is
+        selected_persona_name = st.selectbox("Select a User Persona:", list(personas.keys()), key="persona_select_tool40") 
         
         if selected_persona_name and not df_persona.empty:
             persona_criteria = personas[selected_persona_name]
@@ -1631,8 +1719,8 @@ with st.expander("👤 Tool 37: User Persona-Based Recommendations (Simulated)")
     else:
         st.info("Required columns ('type', 'listed_in', 'imdb_score', 'rating', 'title') not available for Persona-Based Recommendations.")
 
-# Tool 38: Award Impact Analysis
-with st.expander("🏆 Tool 38: Award Impact Analysis"): # Renumbered (was 41)
+# Tool 41: Award Impact Analysis
+with st.expander("🏆 Tool 41: Award Impact Analysis"): # Renumbered (was 38, originally 41)
     required_cols_awards = ['title', 'imdb_score']
     optional_cols_awards = ['awards_won', 'nomination_for_best_picture', 'views_millions']
     
@@ -1709,8 +1797,8 @@ with st.expander("🏆 Tool 38: Award Impact Analysis"): # Renumbered (was 41)
     else:
         st.info(f"Required columns ({', '.join(required_cols_awards)}) not available for Award Impact Analysis.")
 
-# Tool 39: Content Language Diversity & Performance
-with st.expander("🌐 Tool 39: Content Language Diversity & Performance"): # Renumbered (was 42)
+# Tool 42: Content Language Diversity & Performance
+with st.expander("🌐 Tool 42: Content Language Diversity & Performance"): # Renumbered (was 39, originally 42)
     if 'language' in df.columns and 'imdb_score' in df.columns:
         df_lang = df.copy()
         df_lang['imdb_score'] = pd.to_numeric(df_lang['imdb_score'], errors='coerce')
@@ -1721,7 +1809,7 @@ with st.expander("🌐 Tool 39: Content Language Diversity & Performance"): # Re
 
         if not df_lang.empty:
             st.subheader("Content Distribution by Language")
-            top_n_langs = st.slider("Number of Top Languages to Display:", 3, 10, 5, key="lang_top_n") # Key remains as is
+            top_n_langs = st.slider("Number of Top Languages to Display:", 3, 10, 5, key="lang_top_n_tool42") 
             lang_counts = df_lang['language'].value_counts().nlargest(top_n_langs)
             
             fig_lang_dist = px.pie(lang_counts, values=lang_counts.values, names=lang_counts.index,
@@ -1753,8 +1841,8 @@ with st.expander("🌐 Tool 39: Content Language Diversity & Performance"): # Re
     else:
         st.info("Required columns ('language', 'imdb_score') not available for Language Diversity & Performance Analysis.")
 
-# Tool 40: Technical Aspects Analysis (Aspect Ratio & Sound Mix)
-with st.expander("🎞️ Tool 40: Technical Aspects Analysis (Aspect Ratio & Sound Mix)"): # Renumbered (was 43)
+# Tool 43: Technical Aspects Analysis (Aspect Ratio & Sound Mix)
+with st.expander("🎞️ Tool 43: Technical Aspects Analysis (Aspect Ratio & Sound Mix)"): # Renumbered (was 40, originally 43)
     if 'aspect_ratio' in df.columns and 'sound_mix' in df.columns and 'imdb_score' in df.columns:
         df_tech = df.copy()
         df_tech['imdb_score'] = pd.to_numeric(df_tech['imdb_score'], errors='coerce')
@@ -1791,8 +1879,8 @@ with st.expander("🎞️ Tool 40: Technical Aspects Analysis (Aspect Ratio & So
     else:
         st.info("Required columns ('aspect_ratio', 'sound_mix', 'imdb_score') not available for this analysis.")
 
-# Tool 41: Content Acquisition Lag & Performance
-with st.expander("⏳ Tool 41: Content Acquisition Lag & Performance"): # Renumbered (was 44)
+# Tool 44: Content Acquisition Lag & Performance
+with st.expander("⏳ Tool 44: Content Acquisition Lag & Performance"): # Renumbered (was 41, originally 44)
     if 'release_year' in df.columns and 'date_added' in df.columns and 'imdb_score' in df.columns:
         df_acq_lag = df.copy()
         df_acq_lag['date_added'] = pd.to_datetime(df_acq_lag['date_added'], errors='coerce')
@@ -1830,8 +1918,8 @@ with st.expander("⏳ Tool 41: Content Acquisition Lag & Performance"): # Renumb
     else:
         st.info("Required columns ('release_year', 'date_added', 'imdb_score') not available for this analysis.")
 
-# Tool 42: Director & Actor Genre Affinity
-with st.expander("🎨 Tool 42: Director & Actor Genre Affinity"): # Renumbered (was 45)
+# Tool 45: Director & Actor Genre Affinity
+with st.expander("🎨 Tool 45: Director & Actor Genre Affinity"): # Renumbered (was 42, originally 45)
     if 'director' in df.columns and 'cast' in df.columns and 'listed_in' in df.columns:
         df_affinity = df.copy()
         df_affinity.dropna(subset=['director', 'cast', 'listed_in'], inplace=True)
@@ -1843,7 +1931,7 @@ with st.expander("🎨 Tool 42: Director & Actor Genre Affinity"): # Renumbered 
         # Combine and get top people
         all_people = pd.concat([directors_exploded['person'], actors_exploded['person']]).value_counts().nlargest(20).index.tolist()
         
-        selected_person = st.selectbox("Select a Director or Actor:", all_people, key="person_genre_affinity") # Key remains as is
+        selected_person = st.selectbox("Select a Director or Actor:", all_people, key="person_genre_affinity_tool45") 
 
         if selected_person:
             person_df = pd.concat([
@@ -1866,8 +1954,8 @@ with st.expander("🎨 Tool 42: Director & Actor Genre Affinity"): # Renumbered 
     else:
         st.info("Required columns ('director', 'cast', 'listed_in') not available for this analysis.")
 
-# Tool 43: Title Characteristics vs. Performance
-with st.expander("📝 Tool 43: Title Characteristics vs. Performance"): # Renumbered (was 46)
+# Tool 46: Title Characteristics vs. Performance
+with st.expander("📝 Tool 46: Title Characteristics vs. Performance"): # Renumbered (was 43, originally 46)
     if 'title' in df.columns and 'imdb_score' in df.columns:
         df_title_char = df.copy()
         df_title_char['imdb_score'] = pd.to_numeric(df_title_char['imdb_score'], errors='coerce')
@@ -1892,8 +1980,8 @@ with st.expander("📝 Tool 43: Title Characteristics vs. Performance"): # Renum
     else:
         st.info("Required columns ('title', 'imdb_score') not available for this analysis.")
 
-# Tool 44: Simulated Franchise/Sequel Analysis
-with st.expander("🔗 Tool 44: Simulated Franchise/Sequel Analysis"): # Renumbered (was 47)
+# Tool 47: Simulated Franchise/Sequel Analysis
+with st.expander("🔗 Tool 47: Simulated Franchise/Sequel Analysis"): # Renumbered (was 44, originally 47)
     if 'title' in df.columns and 'imdb_score' in df.columns:
         df_franchise = df.copy()
         df_franchise['imdb_score'] = pd.to_numeric(df_franchise['imdb_score'], errors='coerce')
@@ -1921,8 +2009,8 @@ with st.expander("🔗 Tool 44: Simulated Franchise/Sequel Analysis"): # Renumbe
     else:
         st.info("Required columns ('title', 'imdb_score') not available for this analysis.")
 
-# Tool 45: Genre Performance - Movies vs. TV Shows
-with st.expander("🎬🆚📺 Tool 45: Genre Performance - Movies vs. TV Shows"): # Renumbered (was 48)
+# Tool 48: Genre Performance - Movies vs. TV Shows
+with st.expander("🎬🆚📺 Tool 48: Genre Performance - Movies vs. TV Shows"): # Renumbered (was 45, originally 48)
     if 'listed_in' in df.columns and 'type' in df.columns and 'imdb_score' in df.columns:
         df_genre_type = df.copy()
         df_genre_type['imdb_score'] = pd.to_numeric(df_genre_type['imdb_score'], errors='coerce')
@@ -1932,7 +2020,7 @@ with st.expander("🎬🆚📺 Tool 45: Genre Performance - Movies vs. TV Shows"
         genre_type_exploded['genre'] = genre_type_exploded['genre'].str.strip()
         
         top_genres_for_comp = genre_type_exploded['genre'].value_counts().nlargest(10).index.tolist()
-        selected_genre_comp = st.selectbox("Select Genre for Movie vs. TV Show Comparison:", top_genres_for_comp, key="genre_type_comp_select") # Key remains as is
+        selected_genre_comp = st.selectbox("Select Genre for Movie vs. TV Show Comparison:", top_genres_for_comp, key="genre_type_comp_select_tool48") 
 
         if selected_genre_comp:
             genre_specific_df = genre_type_exploded[genre_type_exploded['genre'] == selected_genre_comp]
@@ -1958,8 +2046,8 @@ with st.expander("🎬🆚📺 Tool 45: Genre Performance - Movies vs. TV Shows"
     else:
         st.info("Required columns ('listed_in', 'type', 'imdb_score') not available for this analysis.")
 
-# Tool 46: Decade-wise Genre Evolution & Dominance
-with st.expander("📈 Tool 46: Decade-wise Genre Evolution & Dominance"): # Renumbered (was 49)
+# Tool 49: Decade-wise Genre Evolution & Dominance
+with st.expander("📈 Tool 49: Decade-wise Genre Evolution & Dominance"): # Renumbered (was 46, originally 49)
     if 'release_year' in df.columns and 'listed_in' in df.columns:
         df_decade_genre = df.copy()
         df_decade_genre['release_year'] = pd.to_numeric(df_decade_genre['release_year'], errors='coerce')
@@ -1987,8 +2075,8 @@ with st.expander("📈 Tool 46: Decade-wise Genre Evolution & Dominance"): # Ren
     else:
         st.info("Required columns ('release_year', 'listed_in') not available for this analysis.")
 
-# Tool 47: Budget Efficiency Tiers & ROI Analysis
-with st.expander("💸 Tool 47: Budget Efficiency Tiers & ROI Analysis"): # Renumbered (was 50)
+# Tool 50: Budget Efficiency Tiers & ROI Analysis
+with st.expander("💸 Tool 50: Budget Efficiency Tiers & ROI Analysis"): # Renumbered (was 47, originally 50)
     if 'budget_millions' in df.columns and 'views_millions' in df.columns and 'imdb_score' in df.columns:
         df_budget_roi = df.copy()
         df_budget_roi['budget_millions'] = pd.to_numeric(df_budget_roi['budget_millions'], errors='coerce')
@@ -2033,8 +2121,8 @@ with st.expander("💸 Tool 47: Budget Efficiency Tiers & ROI Analysis"): # Renu
     else:
         st.info("Required columns ('budget_millions', 'views_millions', 'imdb_score') not available for this analysis.")
 
-# Tool 48: Content Pacing & Freshness Strategy Analysis
-with st.expander("📊 Tool 48: Content Pacing & Freshness Strategy Analysis"):
+# Tool 51: Content Pacing & Freshness Strategy Analysis
+with st.expander("📊 Tool 51: Content Pacing & Freshness Strategy Analysis"): # Renumbered (was 48)
     if 'release_year' in df.columns and 'date_added' in df.columns and 'type' in df.columns:
         df_pacing = df.copy()
         df_pacing['date_added'] = pd.to_datetime(df_pacing['date_added'], errors='coerce')
@@ -2059,7 +2147,7 @@ with st.expander("📊 Tool 48: Content Pacing & Freshness Strategy Analysis"):
                     pacing_genre_exploded = df_pacing.assign(genre=df_pacing['listed_in'].str.split(', ')).explode('genre')
                     pacing_genre_exploded['genre'] = pacing_genre_exploded['genre'].str.strip()
                     
-                    top_n_genres_pacing = st.slider("Number of Top Genres for Pacing Analysis:", 3, 10, 5, key="pacing_genre_slider")
+                    top_n_genres_pacing = st.slider("Number of Top Genres for Pacing Analysis:", 3, 10, 5, key="pacing_genre_slider_tool51")
                     common_genres = pacing_genre_exploded['genre'].value_counts().nlargest(top_n_genres_pacing).index.tolist()
                     
                     pacing_top_genres_df = pacing_genre_exploded[pacing_genre_exploded['genre'].isin(common_genres)]
@@ -2079,8 +2167,8 @@ with st.expander("📊 Tool 48: Content Pacing & Freshness Strategy Analysis"):
     else:
         st.info("Required columns ('release_year', 'date_added', 'type') not available for Content Pacing Analysis.")
 
-# Tool 49: Emerging Talent Spotlight (Directors/Actors)
-with st.expander("🌟 Tool 49: Emerging Talent Spotlight (Directors/Actors)"):
+# Tool 52: Emerging Talent Spotlight (Directors/Actors)
+with st.expander("🌟 Tool 52: Emerging Talent Spotlight (Directors/Actors)"): # Renumbered (was 49)
     if all(col in df.columns for col in ['director', 'cast', 'title', 'imdb_score']):
         df_talent = df.copy()
         df_talent['imdb_score'] = pd.to_numeric(df_talent['imdb_score'], errors='coerce')
@@ -2093,8 +2181,8 @@ with st.expander("🌟 Tool 49: Emerging Talent Spotlight (Directors/Actors)"):
 
         st.subheader("Identify High-Potential Talent")
         min_display_count = 5 # Desired minimum number of talents to display
-        max_titles_emerging = st.slider("Max Titles for 'Emerging' Status (fewer titles = more 'emerging'):", 1, 20, 10, key="emerging_max_titles", help="Lower values mean stricter criteria for 'emerging'. Consider dataset size.")
-        min_avg_imdb_emerging = st.slider("Min Avg. IMDb Score for Spotlight:", 6.0, 9.5, 7.5, 0.1, key="emerging_min_imdb") # Kept default min_avg_imdb
+        max_titles_emerging = st.slider("Max Titles for 'Emerging' Status (fewer titles = more 'emerging'):", 1, 20, 10, key="emerging_max_titles_tool52", help="Lower values mean stricter criteria for 'emerging'. Consider dataset size.")
+        min_avg_imdb_emerging = st.slider("Min Avg. IMDb Score for Spotlight:", 6.0, 9.5, 7.5, 0.1, key="emerging_min_imdb_tool52") 
 
         # Directors
         directors_exploded_talent = df_talent.assign(person=df_talent['director'].str.split(', ')).explode('person')
@@ -2170,8 +2258,8 @@ with st.expander("🌟 Tool 49: Emerging Talent Spotlight (Directors/Actors)"):
     else:
         st.info("Required columns ('director', 'cast', 'title', 'imdb_score') not available for Emerging Talent Spotlight.")
 
-# Tool 50: Genre Synergy & Cross-Promotion Opportunities
-with st.expander("🔗 Tool 50: Genre Synergy & Cross-Promotion Opportunities"):
+# Tool 53: Genre Synergy & Cross-Promotion Opportunities
+with st.expander("🔗 Tool 53: Genre Synergy & Cross-Promotion Opportunities"): # Renumbered (was 50)
     if 'listed_in' in df.columns and 'imdb_score' in df.columns:
         df_synergy = df.copy()
         df_synergy['imdb_score'] = pd.to_numeric(df_synergy['imdb_score'], errors='coerce')
@@ -2199,7 +2287,7 @@ with st.expander("🔗 Tool 50: Genre Synergy & Cross-Promotion Opportunities"):
                     avg_views_millions=('views_millions', 'mean')
                 ).reset_index()
                 
-                min_pair_occurrences = st.slider("Min Occurrences for Genre Pair Analysis:", 1, 10, 3, key="synergy_min_occur")
+                min_pair_occurrences = st.slider("Min Occurrences for Genre Pair Analysis:", 1, 10, 3, key="synergy_min_occur_tool53")
                 genre_pair_stats_filtered = genre_pair_stats[genre_pair_stats['count'] >= min_pair_occurrences]
 
                 st.subheader("Top Performing Genre Pairs by Average IMDb Score")
