@@ -401,7 +401,7 @@ with st.expander("📈 Tool 2: Genre Trend Analysis"):
                 st.plotly_chart(fig, use_container_width=True)
 
                 st.subheader(f"Top {num_top_genres} Most Popular Genres (Overall)")
-                st.dataframe(genre_df['genre'].value_counts().n_largest(num_top_genres).rename("Total Titles"))
+                st.dataframe(genre_df['genre'].value_counts().head(num_top_genres).rename("Total Titles"))
             else:
                 st.info("Not enough data for the selected top genres to display trends.")
     else:
