@@ -1656,6 +1656,127 @@ with st.expander("👤 Tool 40: User Persona-Based Recommendations (Simulated)")
     else:
         st.info("Required columns ('type', 'listed_in', 'imdb_score', 'rating', 'title') not available for Persona-Based Recommendations.")
 
+# Tool 41: Award Impact Analysis
+with st.expander("🏆 Tool 41: Award Impact Analysis"):
+    required_cols_awards = ['title', 'imdb_score']
+    optional_cols_awards = ['awards_won', 'nomination_for_best_picture', 'views_millions']
+    
+    if all(col in df.columns for col in required_cols_awards):
+        df_awards = df.copy()
+        df_awards['imdb_score'] = pd.to_numeric(df_awards['imdb_score'], errors='coerce')
+        
+        if 'views_millions' in df_awards.columns:
+            df_awards['views_millions'] = pd.to_numeric(df_awards['views_millions'], errors='coerce')
+        if 'awards_won' in df_awards.columns:
+            df_awards['awards_won'] = pd.to_numeric(df_awards['awards_won'], errors='coerce')
+        if 'nomination_for_best_picture' in df_awards.columns:
+            df_awards['nomination_for_best_picture'] = pd.to_numeric(df_awards['nomination_for_best_picture'], errors='coerce').fillna(0).astype(int)
+
+        df_awards.dropna(subset=['imdb_score', 'title'], inplace=True)
+
+        if not df_awards.empty:
+            st.subheader("Impact of 'Best Picture' Nomination")
+            if 'nomination_for_best_picture' in df_awards.columns:
+                best_pic_analysis = df_awards.groupby('nomination_for_best_picture').agg(
+                    avg_imdb_score=('imdb_score', 'mean'),
+                    avg_views_millions=('views_millions', 'mean') if 'views_millions' in df_awards.columns else pd.NamedAgg(column='title', aggfunc=lambda x: np.nan)
+                ).reset_index()
+                best_pic_analysis['nomination_for_best_picture'] = best_pic_analysis['nomination_for_best_picture'].map({0: 'Not Nominated', 1: 'Nominated'})
+                
+                col_bp1, col_bp2 = st.columns(2)
+                with col_bp1:
+                    fig_bp_imdb = px.bar(best_pic_analysis, x='nomination_for_best_picture', y='avg_imdb_score',
+                                         title="Avg. IMDb: Best Picture Nominated vs. Not",
+                                         labels={'nomination_for_best_picture': '', 'avg_imdb_score': 'Avg. IMDb Score'},
+                                         color='nomination_for_best_picture', template="plotly_dark")
+                    st.plotly_chart(fig_bp_imdb, use_container_width=True)
+                if 'views_millions' in df_awards.columns and not best_pic_analysis['avg_views_millions'].isnull().all():
+                    with col_bp2:
+                        fig_bp_views = px.bar(best_pic_analysis, x='nomination_for_best_picture', y='avg_views_millions',
+                                             title="Avg. Views: Best Picture Nominated vs. Not",
+                                             labels={'nomination_for_best_picture': '', 'avg_views_millions': 'Avg. Views (Millions)'},
+                                             color='nomination_for_best_picture', template="plotly_dark")
+                        st.plotly_chart(fig_bp_views, use_container_width=True)
+            else:
+                st.info("'nomination_for_best_picture' column not available for this part of the analysis.")
+
+            if 'awards_won' in df_awards.columns:
+                df_awards_filtered = df_awards.dropna(subset=['awards_won'])
+                if not df_awards_filtered.empty:
+                    st.subheader("Number of Awards Won vs. IMDb Score")
+                    fig_awards_imdb = px.scatter(df_awards_filtered, x='awards_won', y='imdb_score', trendline="ols",
+                                                 title="Awards Won vs. IMDb Score",
+                                                 labels={'awards_won': 'Number of Awards Won', 'imdb_score': 'IMDb Score'},
+                                                 template="plotly_dark", hover_data=['title'])
+                    st.plotly_chart(fig_awards_imdb, use_container_width=True)
+
+                    st.subheader("Top Titles by Awards Won")
+                    top_award_titles = df_awards_filtered.nlargest(10, 'awards_won')[['title', 'awards_won', 'imdb_score']]
+                    st.dataframe(top_award_titles)
+
+                    # IMDb Score by Award Brackets
+                    bins = [-1, 0, 5, 10, 20, df_awards_filtered['awards_won'].max()] # Define award brackets
+                    labels = ['0 Awards', '1-5 Awards', '6-10 Awards', '11-20 Awards', '20+ Awards']
+                    df_awards_filtered['award_bracket'] = pd.cut(df_awards_filtered['awards_won'], bins=bins, labels=labels, right=True)
+                    avg_imdb_by_bracket = df_awards_filtered.groupby('award_bracket')['imdb_score'].mean().reset_index()
+                    
+                    fig_bracket_imdb = px.bar(avg_imdb_by_bracket, x='award_bracket', y='imdb_score',
+                                              title="Average IMDb Score by Award Count Bracket",
+                                              labels={'award_bracket': 'Award Bracket', 'imdb_score': 'Average IMDb Score'},
+                                              template="plotly_dark")
+                    st.plotly_chart(fig_bracket_imdb, use_container_width=True)
+                else:
+                    st.info("Not enough data with 'awards_won' to analyze.")
+            else:
+                st.info("'awards_won' column not available for detailed award analysis.")
+        else:
+            st.info("Not enough valid data for Award Impact Analysis after cleaning.")
+    else:
+        st.info(f"Required columns ({', '.join(required_cols_awards)}) not available for Award Impact Analysis.")
+
+# Tool 42: Content Language Diversity & Performance
+with st.expander("🌐 Tool 42: Content Language Diversity & Performance"):
+    if 'language' in df.columns and 'imdb_score' in df.columns:
+        df_lang = df.copy()
+        df_lang['imdb_score'] = pd.to_numeric(df_lang['imdb_score'], errors='coerce')
+        if 'views_millions' in df_lang.columns:
+            df_lang['views_millions'] = pd.to_numeric(df_lang['views_millions'], errors='coerce')
+        
+        df_lang.dropna(subset=['language', 'imdb_score'], inplace=True)
+
+        if not df_lang.empty:
+            st.subheader("Content Distribution by Language")
+            top_n_langs = st.slider("Number of Top Languages to Display:", 3, 10, 5, key="lang_top_n")
+            lang_counts = df_lang['language'].value_counts().nlargest(top_n_langs)
+            
+            fig_lang_dist = px.pie(lang_counts, values=lang_counts.values, names=lang_counts.index,
+                                   title=f"Top {top_n_langs} Languages by Content Count", template="plotly_dark")
+            st.plotly_chart(fig_lang_dist, use_container_width=True)
+
+            df_top_langs = df_lang[df_lang['language'].isin(lang_counts.index)]
+
+            st.subheader(f"Performance Metrics for Top {top_n_langs} Languages")
+            avg_imdb_by_lang = df_top_langs.groupby('language')['imdb_score'].mean().reset_index().sort_values(by='imdb_score', ascending=False)
+            fig_lang_imdb = px.bar(avg_imdb_by_lang, x='language', y='imdb_score', color='language',
+                                   title="Average IMDb Score by Language", template="plotly_dark")
+            st.plotly_chart(fig_lang_imdb, use_container_width=True)
+
+            if 'views_millions' in df_top_langs.columns and not df_top_langs['views_millions'].isnull().all():
+                avg_views_by_lang = df_top_langs.groupby('language')['views_millions'].mean().reset_index().sort_values(by='views_millions', ascending=False)
+                fig_lang_views = px.bar(avg_views_by_lang, x='language', y='views_millions', color='language',
+                                       title="Average Views (Millions) by Language", template="plotly_dark")
+                st.plotly_chart(fig_lang_views, use_container_width=True)
+            
+            if 'type' in df_top_langs.columns:
+                st.subheader(f"Content Type Distribution within Top {top_n_langs} Languages")
+                type_by_lang = df_top_langs.groupby(['language', 'type']).size().reset_index(name='count')
+                fig_lang_type = px.bar(type_by_lang, x='language', y='count', color='type', barmode='group',
+                                       title="Movie vs. TV Show Count by Language", template="plotly_dark")
+                st.plotly_chart(fig_lang_type, use_container_width=True)
+        else:
+            st.info("Not enough valid data for Language Diversity analysis after cleaning.")
+    else:
+        st.info("Required columns ('language', 'imdb_score') not available for Language Diversity & Performance Analysis.")
 
 st.markdown("---")
 st.markdown("**Netflix Data Analytics Dashboard** - Comprehensive toolkit for data analysis capstone projects")
