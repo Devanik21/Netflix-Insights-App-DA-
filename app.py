@@ -155,6 +155,99 @@ gemini_key = st.sidebar.text_input("🔑 Gemini API Key", type="password")
 if gemini_key:
     genai.configure(api_key=gemini_key)
 
+# Sidebar: User Utilities & Guide (Moved from main body)
+with st.sidebar.expander("❤️ My Favorite Titles"):
+    st.subheader("Your Saved Favorite Content")
+    st.markdown("You can add titles to your favorites from various tools. Favorites are saved for your current session.")
+
+    if 'favorite_titles' not in st.session_state:
+        st.session_state.favorite_titles = []
+
+    # Initialize/manage the list of sample titles for the selectbox
+    if 'fav_sample_options_list' not in st.session_state:
+        st.session_state.fav_sample_options_list = []
+
+    if not df.empty and 'title' in df.columns:
+        # Function to generate/refresh sample options
+        def refresh_sample_options_for_favorites_sidebar(): # Renamed function for clarity
+            unique_titles = df['title'].dropna().unique()
+            if len(unique_titles) > 0:
+                sample_size = min(5, len(unique_titles))
+                st.session_state.fav_sample_options_list = random.sample(list(unique_titles), sample_size)
+            else:
+                st.session_state.fav_sample_options_list = []
+
+        # Populate on first load if empty and data is available
+        if not st.session_state.fav_sample_options_list and len(df['title'].dropna().unique()) > 0 :
+            refresh_sample_options_for_favorites_sidebar()
+
+        # Button to explicitly refresh the sample titles
+        if st.button("Refresh Sample Titles for Selection", key="refresh_fav_samples_button_sidebar"):
+            refresh_sample_options_for_favorites_sidebar()
+            st.rerun() 
+
+        if st.session_state.fav_sample_options_list:
+            selected_title_for_adding_sidebar = st.selectbox(
+                "Select a sample title to add (demo):",
+                options=st.session_state.fav_sample_options_list,
+                key="fav_title_selector_sidebar" 
+            )
+
+            if st.button("Add to Favorites", key="fav_add_button_sidebar"):
+                if selected_title_for_adding_sidebar:
+                    if selected_title_for_adding_sidebar not in st.session_state.favorite_titles:
+                        st.session_state.favorite_titles.append(selected_title_for_adding_sidebar)
+                        st.success(f"Added '{selected_title_for_adding_sidebar}'!")
+                    else:
+                        st.info(f"'{selected_title_for_adding_sidebar}' is already in favorites.")
+                else:
+                    st.warning("No title selected.")
+        else:
+            st.write("No sample titles available.")
+
+    if not st.session_state.favorite_titles:
+        st.info("No favorites added yet.")
+    else:
+        st.write("Your favorites:")
+        for i, title_in_fav_list in enumerate(list(st.session_state.favorite_titles)): 
+            col1_fav, col2_fav = st.columns([0.8, 0.2])
+            col1_fav.write(f"- {title_in_fav_list}")
+            if col2_fav.button(f"X##{i}", key=f"remove_fav_{i}_sidebar", help="Remove"): # Smaller remove button
+                del st.session_state.favorite_titles[i] 
+                st.rerun()
+
+        if st.button("Clear All Favorites", key="clear_fav_sidebar"):
+            st.session_state.favorite_titles = []
+            st.rerun()
+
+with st.sidebar.expander("📚 In-App Guide"):
+    st.subheader("Understanding Your Dashboard")
+    st.markdown("""
+    This guide provides a brief overview of key analytical tool categories. 
+    Explore each tool's expander in the main dashboard for specific details.
+    """)
+    st.markdown("---")
+    st.markdown("#### **📄 Data Overview**")
+    st.markdown("- Snapshot of dataset: rows, dimensions, missing values, data types, statistics.")
+    st.markdown("---")
+    st.markdown("#### **📊 Core Analytics (Tools 1-10)**")
+    st.markdown("- Fundamental analyses like performance, genre trends, geographic distribution, duration, ratings, release timelines, ROI, correlations, and basic predictions.")
+    st.markdown("---")
+    st.markdown("#### **🔬 Advanced Analytics (Tools 11-30)**")
+    st.markdown("- Deeper dives including recommendations, exports, director/actor analysis, word clouds, content evolution, deep comparisons, seasonality, search, and multi-faceted correlations.")
+    st.markdown("---")
+    st.markdown("#### **🧠 AI-Powered Tools (Tools 31-35)**")
+    st.markdown("- Leverages Generative AI (Gemini) for insights, chat, content summaries, title suggestions, and sentiment analysis. *Requires API Key.*")
+    st.markdown("---")
+    st.markdown("#### **🔍 Deeper Perspectives (Tools 36-52)**")
+    st.markdown("- Explores content lifecycle, hidden gems, genre saturation, N-grams, personas, award impact, language diversity, talent affinity, technical details, franchise simulation, budget efficiency, and emerging talent.")
+    st.markdown("---")
+    st.markdown("#### **🛠️ Utilities (Tool 53)**")
+    st.markdown("- Showcases data cleaning and preparation steps common in data analysis.")
+    st.markdown("---")
+    st.markdown("#### **🎮 Gamified Analytics (Tools 54-55)**")
+    st.markdown("- Interactive challenges to test your knowledge and intuition about the dataset.")
+
 # Main Dashboard
 col1, col2, col3, col4 = st.columns(4)
 total_titles = len(df)
@@ -2447,136 +2540,10 @@ with st.expander("🧹 Tool 53: Data Cleaning & Preparation Showcase"):
     else:
         st.warning("Dataset not loaded. Cannot showcase data cleaning.")
 
-# Tool 54: User Favorites (Session State)
-with st.expander("❤️ Tool 54: My Favorite Titles"):
-    st.subheader("Your Saved Favorite Content")
-    st.markdown("You can add titles to your favorites from tools like 'Content Recommendation Engine' or 'Hidden Gems Detector'. Favorites are saved for your current session.")
-
-    if 'favorite_titles' not in st.session_state:
-        st.session_state.favorite_titles = []
-
-    # Initialize/manage the list of sample titles for the selectbox
-    if 'fav_sample_options_list' not in st.session_state:
-        st.session_state.fav_sample_options_list = []
-
-    if not df.empty and 'title' in df.columns:
-        # Function to generate/refresh sample options
-        def refresh_sample_options_for_favorites():
-            unique_titles = df['title'].dropna().unique()
-            if len(unique_titles) > 0:
-                sample_size = min(5, len(unique_titles))
-                st.session_state.fav_sample_options_list = random.sample(list(unique_titles), sample_size)
-            else:
-                st.session_state.fav_sample_options_list = []
-
-        # Populate on first load if empty and data is available
-        if not st.session_state.fav_sample_options_list and len(df['title'].dropna().unique()) > 0 :
-            refresh_sample_options_for_favorites()
-
-        # Button to explicitly refresh the sample titles
-        if st.button("Refresh Sample Titles for Selection", key="refresh_fav_samples_button_tool54"):
-            refresh_sample_options_for_favorites()
-            st.rerun() # Rerun to update the selectbox with new options
-
-        if st.session_state.fav_sample_options_list:
-            # The selectbox will now use a stable list of options until "Refresh" is clicked.
-            # Its internal state (what's selected) is managed by Streamlit via its key.
-            selected_title_for_adding = st.selectbox(
-                "Select a sample title to add to favorites (demo):",
-                options=st.session_state.fav_sample_options_list,
-                key="fav_title_selector_tool54" # Unique key for the selectbox
-            )
-
-            if st.button("Add Selected Title to Favorites", key="fav_add_button_tool54"):
-                # `selected_title_for_adding` will correctly hold the user's selection
-                # from the `st.session_state.fav_sample_options_list`
-                if selected_title_for_adding:
-                    if selected_title_for_adding not in st.session_state.favorite_titles:
-                        st.session_state.favorite_titles.append(selected_title_for_adding)
-                        st.success(f"Added '{selected_title_for_adding}' to favorites!")
-                    else:
-                        st.info(f"'{selected_title_for_adding}' is already in favorites.")
-                else:
-                    st.warning("No title selected to add.") # Should not happen if options are not empty
-        else:
-            st.write("No sample titles available to select. Ensure 'title' column has data and try refreshing, or load a dataset.")
-
-    if not st.session_state.favorite_titles:
-        st.info("You haven't added any titles to your favorites yet.")
-    else:
-        st.write("Your favorite titles:")
-        for i, title_in_fav_list in enumerate(list(st.session_state.favorite_titles)): # Iterate over a copy
-            col1_fav, col2_fav = st.columns([0.8, 0.2])
-            col1_fav.write(f"- {title_in_fav_list}")
-            if col2_fav.button(f"Remove##{i}", key=f"remove_fav_{i}_tool54"):
-                del st.session_state.favorite_titles[i] # Remove by index from the original list
-                st.rerun()
-
-        if st.button("Clear All Favorites", key="clear_fav_tool54"):
-            st.session_state.favorite_titles = []
-            st.rerun()
-
-# Tool 55: Mini Documentation (In-App Guide)
-with st.expander("📚 Tool 55: In-App Guide & Tool Explanations"):
-    st.subheader("Understanding Your Dashboard Tools")
-    st.markdown("""
-    This guide provides a brief overview of each analytical tool available in the dashboard.
-    """)
-
-    # General Overview Tools
-    st.markdown("---")
-    st.markdown("#### **📄 Comprehensive Data Overview**")
-    st.markdown("- **Purpose:** Provides a quick snapshot of your dataset: first few rows, dimensions, missing values, data types, and basic statistics.")
-    st.markdown("- **Key Columns Used:** All columns in the dataset.")
-    st.markdown("- **How to Use:** Expand to get an initial understanding of your data's structure and quality.")
-
-    # Specific Analytic Tools (Examples - add more for key tools)
-    st.markdown("---")
-    st.markdown("#### **📊 Tool 1: Content Performance Analytics**")
-    st.markdown("- **Purpose:** Visualizes the relationship between IMDb scores and viewership, segmented by content type.")
-    st.markdown("- **Key Columns Used:** `imdb_score`, `views_millions`, `type`, `budget_millions` (for size).")
-    st.markdown("- **Example Insight:** Identify if higher IMDb scores correlate with higher views, and if this differs for Movies vs. TV Shows.")
-
-    st.markdown("---")
-    st.markdown("#### **📈 Tool 2: Genre Trend Analysis**")
-    st.markdown("- **Purpose:** Tracks the popularity of different genres over release years.")
-    st.markdown("- **Key Columns Used:** `release_year`, `listed_in`.")
-    st.markdown("- **Example Insight:** Discover which genres have been gaining or losing popularity over time.")
-
-    st.markdown("---")
-    st.markdown("#### **🌍 Tool 3: Geographic Content Distribution**")
-    st.markdown("- **Purpose:** Shows which countries are the primary producers of content in the dataset.")
-    st.markdown("- **Key Columns Used:** `country`.")
-    st.markdown("- **Example Insight:** Identify top content-producing nations and their market share.")
-    
-    st.markdown("---")
-    st.markdown("#### **🔮 Tool 10: Predictive Analytics Dashboard**")
-    st.markdown("- **Purpose:** Demonstrates simple machine learning models (Linear Regression, Polynomial Regression, SVR) to predict 'Views (Millions)' based on 'IMDb Score' and 'Budget (Millions)'.")
-    st.markdown("- **Key Columns Used:** `imdb_score`, `budget_millions`, `views_millions`.")
-    st.markdown("- **How to Use:** Select a model type, view its performance on a test set, and try predicting views for custom inputs. Note the disclaimer about model simplicity.")
-    st.markdown("- **Example Insight:** Understand potential (though simplified) relationships between budget/ratings and viewership, and see how different models perform.")
-
-    st.markdown("---")
-    st.markdown("#### **🤖 Tool 31: AI-Powered General Insights** (and other AI tools)")
-    st.markdown("- **Purpose:** Leverages a Generative AI model (Gemini) to provide high-level insights, answer questions about the dataset, or generate creative content based on data summaries or user prompts.")
-    st.markdown("- **Key Columns Used:** Varies by specific AI tool; often uses a summary of the entire dataset or specific user inputs.")
-    st.markdown("- **How to Use:** Requires a Gemini API Key. Select an analysis type or ask a question. The AI will generate text-based responses.")
-    st.markdown("- **Example Insight:** Get strategic suggestions for content strategy, identify potential market gaps, or get AI-generated summaries for titles.")
-
-    st.markdown("---")
-    st.markdown("#### **💎 Tool 37: 'Hidden Gems' Detector**")
-    st.markdown("- **Purpose:** Helps identify content that has a high IMDb score but relatively lower viewership or budget (as a proxy for exposure).")
-    st.markdown("- **Key Columns Used:** `imdb_score`, `views_millions` (or `budget_millions`), `title`, `type`.")
-    st.markdown("- **How to Use:** Adjust sliders for minimum IMDb score and maximum performance metric to define what constitutes a 'hidden gem'.")
-    st.markdown("- **Example Insight:** Discover critically acclaimed content that might be under the radar for wider audiences.")
-
-    st.markdown("---")
-    st.markdown("_(This guide is a subset. Explore each tool's expander for more specific information!)_")
-
 st.header("🎮 Gamified Analytics")
 
-# Tool 56: "Guess the Views" Challenge
-with st.expander("🎯 Tool 56: 'Guess the Views' Challenge"):
+# Tool 54: "Guess the Views" Challenge (Renumbered from 56)
+with st.expander("🎯 Tool 54: 'Guess the Views' Challenge"):
     st.subheader("Test Your Netflix Viewership Intuition!")
     if 'views_millions' not in df.columns or 'title' not in df.columns or 'imdb_score' not in df.columns or 'listed_in' not in df.columns or 'release_year' not in df.columns:
         st.warning("Required columns (views_millions, title, imdb_score, listed_in, release_year) are not available for this game.")
@@ -2592,7 +2559,7 @@ with st.expander("🎯 Tool 56: 'Guess the Views' Challenge"):
 
         df_game_gtv = df.dropna(subset=['views_millions', 'title', 'imdb_score', 'listed_in', 'release_year'])
 
-        if st.button("Get New Challenge Title", key="new_challenge_gtv_tool56"):
+        if st.button("Get New Challenge Title", key="new_challenge_gtv_tool54"):
             if not df_game_gtv.empty:
                 st.session_state.current_challenge_gtv = df_game_gtv.sample(1).iloc[0]
                 st.session_state.gtv_revealed = False
@@ -2611,10 +2578,10 @@ with st.expander("🎯 Tool 56: 'Guess the Views' Challenge"):
             actual_views = challenge_title['views_millions']
             
             if not st.session_state.gtv_revealed:
-                user_guess = st.number_input("Guess the Views (Millions):", min_value=0.0, value=st.session_state.get('user_guess_gtv', 10.0), step=1.0, key="guess_input_gtv_tool56")
+                user_guess = st.number_input("Guess the Views (Millions):", min_value=0.0, value=st.session_state.get('user_guess_gtv', 10.0), step=1.0, key="guess_input_gtv_tool54")
                 st.session_state.user_guess_gtv = user_guess # Store current input
 
-                if st.button("Submit Guess & Reveal", key="submit_guess_gtv_tool56"):
+                if st.button("Submit Guess & Reveal", key="submit_guess_gtv_tool54"):
                     st.session_state.gtv_revealed = True
                     st.write(f"Your Guess: **{user_guess:.1f} million**")
                     st.write(f"Actual Views: **{actual_views:.1f} million**")
@@ -2643,14 +2610,14 @@ with st.expander("🎯 Tool 56: 'Guess the Views' Challenge"):
                 # The feedback message is already shown on reveal, so no need to repeat unless you want to.
 
         st.markdown(f"--- \n**Your Total Score: {st.session_state.game_score_gtv} points**")
-        if st.button("Reset Score", key="reset_score_gtv_tool56"):
+        if st.button("Reset Score", key="reset_score_gtv_tool54"):
             st.session_state.game_score_gtv = 0
             st.session_state.current_challenge_gtv = None
             st.session_state.gtv_revealed = False
             st.rerun()
 
-# Tool 57: Netflix Trivia Challenge
-with st.expander("🧠 Tool 57: Netflix Trivia Challenge"):
+# Tool 55: Netflix Trivia Challenge (Renumbered from 57)
+with st.expander("🧠 Tool 55: Netflix Trivia Challenge"):
     st.subheader("Test Your Netflix Dataset Knowledge!")
 
     if 'trivia_score' not in st.session_state:
@@ -2704,7 +2671,7 @@ with st.expander("🧠 Tool 57: Netflix Trivia Challenge"):
 
         return random.sample(questions, min(num_questions, len(questions))) if questions else []
 
-    if st.button("Start/Restart Trivia Challenge", key="start_trivia_tool57"):
+    if st.button("Start/Restart Trivia Challenge", key="start_trivia_tool55"):
         st.session_state.trivia_questions = generate_trivia_questions(df, num_questions=5)
         st.session_state.current_trivia_idx = 0
         st.session_state.trivia_score = 0
