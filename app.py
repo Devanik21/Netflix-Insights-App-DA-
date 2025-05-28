@@ -2905,7 +2905,7 @@ with st.expander("🎯 Tool 54: 'Guess the Views' Challenge"):
         if 'gtv_revealed' not in st.session_state:
             st.session_state.gtv_revealed = False
         if 'gtv_difficulty' not in st.session_state:
-            st.session_state.gtv_difficulty = "Medium" # Default difficulty
+            st.session_state.gtv_difficulty = "Medium Might" # Default difficulty
         if 'gtv_hint_taken' not in st.session_state:
             st.session_state.gtv_hint_taken = False
         if 'gtv_hint_message' not in st.session_state:
