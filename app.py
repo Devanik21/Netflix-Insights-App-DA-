@@ -13,6 +13,10 @@ import re
 from collections import Counter
 
 from itertools import combinations # Added for Tool 50
+from sklearn.cluster import KMeans # Added for Tool 52
+from sklearn.preprocessing import StandardScaler # Added for Tool 52
+from sklearn.decomposition import PCA # Added for Tool 52
+import random # Added for Tools 56, 57
 
 st.set_page_config(page_title="Netflix Analytics Dashboard", layout="wide", page_icon="🎬")
 st.title("🎬 Netflix Data Analytics Dashboard")
@@ -2247,6 +2251,433 @@ with st.expander("🔗 Tool 50: Genre Synergy & Cross-Promotion Opportunities"):
             st.info("Not enough valid data for 'listed_in' and 'imdb_score' to perform genre synergy analysis.")
     else:
         st.info("Required columns ('listed_in', 'imdb_score') not available for Genre Synergy Analysis.")
+
+# Tool 51: AI-Driven User Sentiment Analysis (Placed in AI-Powered Tools section)
+with st.expander("😊 Tool 51: AI-Driven User Sentiment Analysis (Review Text)"):
+    if gemini_key:
+        st.subheader("Analyze Sentiment of User Review Text")
+        st.markdown("""
+        This tool uses AI to analyze the sentiment of a provided text, simulating how user reviews could be processed.
+        If your dataset had a 'reviews' column, this AI could be applied to understand audience reception at scale.
+        """)
+        review_text_tool51 = st.text_area("Paste review text here:", height=150, placeholder="e.g., 'An absolute masterpiece, I was captivated from start to finish!' or 'The plot was predictable and the characters were underdeveloped.'", key="ai_sentiment_review_text_tool51")
+        
+        if st.button("Analyze Sentiment with AI", key="ai_analyze_sentiment_button_tool51"):
+            if review_text_tool51:
+                prompt = f"""Analyze the sentiment of the following review. Classify it as Positive, Negative, or Neutral. 
+Provide a brief (1-sentence) explanation for your classification and a confidence score (Low, Medium, High).
+Review: "{review_text_tool51}"
+
+Sentiment: [Positive/Negative/Neutral]
+Confidence: [Low/Medium/High]
+Explanation: ..."""
+                try:
+                    model = genai.GenerativeModel("gemini-1.5-flash-latest")
+                    response = model.generate_content(prompt)
+                    st.markdown("#### Sentiment Analysis Result:")
+                    st.info(response.text)
+                except Exception as e:
+                    st.error(f"Error analyzing sentiment: {e}")
+            else:
+                st.warning("Please enter a review text to analyze.")
+    else:
+        st.info("Enter Gemini API key in the sidebar to use AI-Driven Sentiment Analysis.")
+
+
+st.header("🔬 Advanced Exploratory Tools")
+
+# Tool 52: Clustering for Genre Discovery
+with st.expander("🧬 Tool 52: Clustering for Content Discovery"):
+    st.subheader("Discover Hidden Content Groups using K-Means Clustering")
+    st.markdown("""
+    This tool attempts to find natural groupings in your content based on selected features.
+    It uses the K-Means clustering algorithm. Clusters might reveal interesting segments,
+    e.g., 'high-rated, low-budget movies' or 'long-running, popular TV shows'.
+    """)
+
+    if not df.empty:
+        # Prepare data for clustering
+        df_cluster = df.copy()
+        
+        # Feature Engineering: Duration
+        def parse_duration_for_clustering(row):
+            duration_str = str(row['duration'])
+            if 'min' in duration_str: # Movie
+                return int(re.findall(r'\d+', duration_str)[0])
+            elif 'Season' in duration_str: # TV Show
+                return int(re.findall(r'\d+', duration_str)[0]) * 50 # Arbitrary scaling for seasons vs minutes
+            return np.nan
+
+        if 'duration' in df_cluster.columns and 'type' in df_cluster.columns:
+            df_cluster['duration_numeric_clustering'] = df_cluster.apply(parse_duration_for_clustering, axis=1)
+
+        numeric_cols_for_clustering = ['imdb_score', 'release_year', 'budget_millions', 'views_millions', 'duration_numeric_clustering']
+        available_features = [col for col in numeric_cols_for_clustering if col in df_cluster.columns and pd.api.types.is_numeric_dtype(df_cluster[col])]
+        
+        if not available_features:
+            st.warning("No suitable numeric features found for clustering (e.g., imdb_score, release_year, budget_millions, views_millions, parsed duration).")
+        else:
+            selected_features_clustering = st.multiselect("Select features for clustering:", available_features, default=available_features[:2] if len(available_features) >=2 else available_features, key="clustering_features_tool52")
+
+            if len(selected_features_clustering) < 2:
+                st.warning("Please select at least two features for clustering.")
+            else:
+                df_cluster_selected = df_cluster[selected_features_clustering + ['title', 'listed_in']].copy()
+                df_cluster_selected.dropna(subset=selected_features_clustering, inplace=True)
+
+                if len(df_cluster_selected) < 10: # Need enough data points
+                    st.warning(f"Not enough data ({len(df_cluster_selected)} rows) after cleaning for the selected features. Please select different features or check your dataset.")
+                else:
+                    scaler = StandardScaler()
+                    X_scaled = scaler.fit_transform(df_cluster_selected[selected_features_clustering])
+
+                    num_clusters = st.slider("Select number of clusters (k):", 2, 10, 3, key="num_clusters_tool52")
+                    
+                    if st.button("Run Clustering", key="run_clustering_tool52"):
+                        kmeans = KMeans(n_clusters=num_clusters, random_state=42, n_init='auto')
+                        df_cluster_selected['cluster'] = kmeans.fit_predict(X_scaled)
+
+                        st.subheader(f"Clustering Results ({num_clusters} Clusters)")
+
+                        # Visualization
+                        if len(selected_features_clustering) == 2:
+                            fig_cluster = px.scatter(df_cluster_selected, x=selected_features_clustering[0], y=selected_features_clustering[1],
+                                                     color='cluster', hover_data=['title'], title="Content Clusters", template="plotly_dark")
+                            st.plotly_chart(fig_cluster, use_container_width=True)
+                        else: # Use PCA for >2 features
+                            pca = PCA(n_components=2, random_state=42)
+                            X_pca = pca.fit_transform(X_scaled)
+                            df_cluster_selected['pca1'] = X_pca[:, 0]
+                            df_cluster_selected['pca2'] = X_pca[:, 1]
+                            fig_cluster_pca = px.scatter(df_cluster_selected, x='pca1', y='pca2', color='cluster',
+                                                         hover_data=['title'] + selected_features_clustering,
+                                                         title="Content Clusters (PCA Reduced)",
+                                                         labels={'pca1': 'Principal Component 1', 'pca2': 'Principal Component 2'},
+                                                         template="plotly_dark")
+                            st.plotly_chart(fig_cluster_pca, use_container_width=True)
+                            st.caption("Clusters visualized using the first two Principal Components as original features are more than two.")
+
+                        # Cluster Characterization
+                        st.subheader("Cluster Characteristics (Mean Values & Top Genres)")
+                        for i in range(num_clusters):
+                            cluster_data = df_cluster_selected[df_cluster_selected['cluster'] == i]
+                            st.markdown(f"#### Cluster {i} ({len(cluster_data)} titles)")
+                            st.dataframe(cluster_data[selected_features_clustering].mean().to_frame(name='Mean Value').style.format("{:.2f}"))
+                            
+                            if 'listed_in' in cluster_data.columns:
+                                all_genres_in_cluster = [genre.strip() for sublist in cluster_data['listed_in'].str.split(',') for genre in sublist if genre.strip()]
+                                top_genres_cluster = Counter(all_genres_in_cluster).most_common(3)
+                                st.write(f"Top Genres: {', '.join([f'{g[0]} ({g[1]})' for g in top_genres_cluster])}")
+                            st.dataframe(cluster_data[['title'] + selected_features_clustering].head(3))
+    else:
+        st.warning("Dataset not loaded. Clustering cannot be performed.")
+
+st.header("🛠️ Utilities & User Features")
+
+# Tool 53: Data Cleaning Showcase
+with st.expander("🧹 Tool 53: Data Cleaning & Preparation Showcase"):
+    st.subheader("Illustrating Data Cleaning Steps")
+    st.markdown("""
+    Effective data analysis relies on clean, well-prepared data. This section showcases
+    some common cleaning and feature engineering techniques applied throughout this dashboard.
+    """)
+
+    if not df.empty:
+        st.markdown("#### 1. Handling Missing Values")
+        st.write("Missing values can skew analysis. Here's a summary for the loaded dataset:")
+        missing_counts_showcase = df.isnull().sum()
+        missing_df_showcase = missing_counts_showcase[missing_counts_showcase > 0].rename("Missing Count").to_frame()
+        if not missing_df_showcase.empty:
+            st.dataframe(missing_df_showcase.T)
+            st.write("Common strategies (applied selectively in tools):")
+            st.markdown("- **Dropping rows/columns:** If missing data is extensive or a column is not critical.")
+            st.markdown("- **Imputation:** Filling missing values (e.g., with mean, median, mode, or a constant like 'Unknown'). For example, 'director' or 'cast' might be filled with 'Unknown'.")
+            st.markdown("- **Model-based imputation:** More advanced, using other features to predict missing values.")
+        else:
+            st.success("No missing values found in the currently loaded dataset (or they were handled prior to this view).")
+
+        st.markdown("#### 2. Feature Engineering Examples")
+        st.markdown("- **Extracting Numeric Duration:** The 'duration' column (e.g., '1 Season', '90 min') is often converted to a purely numeric form for analysis (see Tool 4: Content Duration Analysis).")
+        st.code("df['movie_duration_minutes'] = df[df['type']=='Movie']['duration'].str.extract('(\d+)').astype(float)\ndf['tv_show_seasons'] = df[df['type']=='TV Show']['duration'].str.extract('(\d+)').astype(float)", language="python")
+        
+        st.markdown("- **Creating 'Decade':** Grouping content by 'release_year' into decades (see Tool 6: Release Year Timeline).")
+        st.code("df['decade'] = (df['release_year'] // 10) * 10", language="python")
+
+        st.markdown("- **Splitting 'listed_in' (Genres):** The 'listed_in' column often contains multiple genres (e.g., 'Dramas, International Movies'). For detailed genre analysis, this is split (see Tool 2: Genre Trend Analysis).")
+        st.code("genres_exploded = df.assign(genre=df['listed_in'].str.split(', ')).explode('genre')", language="python")
+
+        st.markdown("#### 3. Data Type Conversion")
+        st.write("Ensuring columns have the correct data type is crucial (e.g., 'imdb_score' should be numeric).")
+        st.dataframe(df.dtypes.rename("Data Type").to_frame().T.head())
+        st.code("df['imdb_score'] = pd.to_numeric(df['imdb_score'], errors='coerce')", language="python")
+        st.caption("`errors='coerce'` turns unparseable values into NaN, which are then handled.")
+    else:
+        st.warning("Dataset not loaded. Cannot showcase data cleaning.")
+
+# Tool 54: User Favorites (Session State)
+with st.expander("❤️ Tool 54: My Favorite Titles"):
+    st.subheader("Your Saved Favorite Content")
+    st.markdown("You can add titles to your favorites from tools like 'Content Recommendation Engine' or 'Hidden Gems Detector'. Favorites are saved for your current session.")
+
+    if 'favorite_titles' not in st.session_state:
+        st.session_state.favorite_titles = []
+
+    # Example of how to add a favorite (this button would be in other tools)
+    # For demonstration, let's add a way to manually add a favorite here if df is loaded
+    if not df.empty and 'title' in df.columns:
+        sample_title_for_fav = st.selectbox("Select a sample title to add to favorites (demo):", df['title'].dropna().sample(min(5, len(df))).tolist(), key="fav_sample_add_tool54")
+        if st.button("Add Sample to Favorites", key="fav_add_button_tool54"):
+            if sample_title_for_fav not in st.session_state.favorite_titles:
+                st.session_state.favorite_titles.append(sample_title_for_fav)
+                st.success(f"Added '{sample_title_for_fav}' to favorites!")
+            else:
+                st.info(f"'{sample_title_for_fav}' is already in favorites.")
+
+    if not st.session_state.favorite_titles:
+        st.info("You haven't added any titles to your favorites yet.")
+    else:
+        st.write("Your favorite titles:")
+        for i, title in enumerate(st.session_state.favorite_titles):
+            col1_fav, col2_fav = st.columns([0.8, 0.2])
+            col1_fav.write(f"- {title}")
+            if col2_fav.button(f"Remove##{i}", key=f"remove_fav_{i}_tool54"):
+                st.session_state.favorite_titles.pop(i)
+                st.rerun()
+        
+        if st.button("Clear All Favorites", key="clear_fav_tool54"):
+            st.session_state.favorite_titles = []
+            st.rerun()
+
+# Tool 55: Mini Documentation (In-App Guide)
+with st.expander("📚 Tool 55: In-App Guide & Tool Explanations"):
+    st.subheader("Understanding Your Dashboard Tools")
+    st.markdown("""
+    This guide provides a brief overview of each analytical tool available in the dashboard.
+    """)
+
+    # General Overview Tools
+    st.markdown("---")
+    st.markdown("#### **📄 Comprehensive Data Overview**")
+    st.markdown("- **Purpose:** Provides a quick snapshot of your dataset: first few rows, dimensions, missing values, data types, and basic statistics.")
+    st.markdown("- **Key Columns Used:** All columns in the dataset.")
+    st.markdown("- **How to Use:** Expand to get an initial understanding of your data's structure and quality.")
+
+    # Specific Analytic Tools (Examples - add more for key tools)
+    st.markdown("---")
+    st.markdown("#### **📊 Tool 1: Content Performance Analytics**")
+    st.markdown("- **Purpose:** Visualizes the relationship between IMDb scores and viewership, segmented by content type.")
+    st.markdown("- **Key Columns Used:** `imdb_score`, `views_millions`, `type`, `budget_millions` (for size).")
+    st.markdown("- **Example Insight:** Identify if higher IMDb scores correlate with higher views, and if this differs for Movies vs. TV Shows.")
+
+    st.markdown("---")
+    st.markdown("#### **📈 Tool 2: Genre Trend Analysis**")
+    st.markdown("- **Purpose:** Tracks the popularity of different genres over release years.")
+    st.markdown("- **Key Columns Used:** `release_year`, `listed_in`.")
+    st.markdown("- **Example Insight:** Discover which genres have been gaining or losing popularity over time.")
+
+    st.markdown("---")
+    st.markdown("#### **🌍 Tool 3: Geographic Content Distribution**")
+    st.markdown("- **Purpose:** Shows which countries are the primary producers of content in the dataset.")
+    st.markdown("- **Key Columns Used:** `country`.")
+    st.markdown("- **Example Insight:** Identify top content-producing nations and their market share.")
+    
+    st.markdown("---")
+    st.markdown("#### **🔮 Tool 10: Predictive Analytics Dashboard**")
+    st.markdown("- **Purpose:** Demonstrates simple machine learning models (Linear Regression, Polynomial Regression, SVR) to predict 'Views (Millions)' based on 'IMDb Score' and 'Budget (Millions)'.")
+    st.markdown("- **Key Columns Used:** `imdb_score`, `budget_millions`, `views_millions`.")
+    st.markdown("- **How to Use:** Select a model type, view its performance on a test set, and try predicting views for custom inputs. Note the disclaimer about model simplicity.")
+    st.markdown("- **Example Insight:** Understand potential (though simplified) relationships between budget/ratings and viewership, and see how different models perform.")
+
+    st.markdown("---")
+    st.markdown("#### **🤖 Tool 31: AI-Powered General Insights** (and other AI tools)")
+    st.markdown("- **Purpose:** Leverages a Generative AI model (Gemini) to provide high-level insights, answer questions about the dataset, or generate creative content based on data summaries or user prompts.")
+    st.markdown("- **Key Columns Used:** Varies by specific AI tool; often uses a summary of the entire dataset or specific user inputs.")
+    st.markdown("- **How to Use:** Requires a Gemini API Key. Select an analysis type or ask a question. The AI will generate text-based responses.")
+    st.markdown("- **Example Insight:** Get strategic suggestions for content strategy, identify potential market gaps, or get AI-generated summaries for titles.")
+
+    st.markdown("---")
+    st.markdown("#### **💎 Tool 37: 'Hidden Gems' Detector**")
+    st.markdown("- **Purpose:** Helps identify content that has a high IMDb score but relatively lower viewership or budget (as a proxy for exposure).")
+    st.markdown("- **Key Columns Used:** `imdb_score`, `views_millions` (or `budget_millions`), `title`, `type`.")
+    st.markdown("- **How to Use:** Adjust sliders for minimum IMDb score and maximum performance metric to define what constitutes a 'hidden gem'.")
+    st.markdown("- **Example Insight:** Discover critically acclaimed content that might be under the radar for wider audiences.")
+
+    st.markdown("---")
+    st.markdown("_(This guide is a subset. Explore each tool's expander for more specific information!)_")
+
+st.header("🎮 Gamified Analytics")
+
+# Tool 56: "Guess the Views" Challenge
+with st.expander("🎯 Tool 56: 'Guess the Views' Challenge"):
+    st.subheader("Test Your Netflix Viewership Intuition!")
+    if 'views_millions' not in df.columns or 'title' not in df.columns or 'imdb_score' not in df.columns or 'listed_in' not in df.columns or 'release_year' not in df.columns:
+        st.warning("Required columns (views_millions, title, imdb_score, listed_in, release_year) are not available for this game.")
+    elif df['views_millions'].isnull().all():
+        st.warning("The 'views_millions' column has no valid data for this game.")
+    else:
+        if 'game_score_gtv' not in st.session_state:
+            st.session_state.game_score_gtv = 0
+        if 'current_challenge_gtv' not in st.session_state:
+            st.session_state.current_challenge_gtv = None
+        if 'gtv_revealed' not in st.session_state:
+            st.session_state.gtv_revealed = False
+
+        df_game_gtv = df.dropna(subset=['views_millions', 'title', 'imdb_score', 'listed_in', 'release_year'])
+
+        if st.button("Get New Challenge Title", key="new_challenge_gtv_tool56"):
+            if not df_game_gtv.empty:
+                st.session_state.current_challenge_gtv = df_game_gtv.sample(1).iloc[0]
+                st.session_state.gtv_revealed = False
+                st.session_state.user_guess_gtv = None # Reset previous guess
+            else:
+                st.error("Not enough data to start the game.")
+        
+        if st.session_state.current_challenge_gtv is not None:
+            challenge_title = st.session_state.current_challenge_gtv
+            st.markdown(f"#### Title: **{challenge_title['title']}**")
+            st.write(f"- **Type:** {challenge_title.get('type', 'N/A')}")
+            st.write(f"- **Genre(s):** {challenge_title['listed_in']}")
+            st.write(f"- **Release Year:** {challenge_title['release_year']}")
+            st.write(f"- **IMDb Score:** {challenge_title['imdb_score']:.1f}")
+
+            actual_views = challenge_title['views_millions']
+            
+            if not st.session_state.gtv_revealed:
+                user_guess = st.number_input("Guess the Views (Millions):", min_value=0.0, value=st.session_state.get('user_guess_gtv', 10.0), step=1.0, key="guess_input_gtv_tool56")
+                st.session_state.user_guess_gtv = user_guess # Store current input
+
+                if st.button("Submit Guess & Reveal", key="submit_guess_gtv_tool56"):
+                    st.session_state.gtv_revealed = True
+                    st.write(f"Your Guess: **{user_guess:.1f} million**")
+                    st.write(f"Actual Views: **{actual_views:.1f} million**")
+                    
+                    difference = abs(user_guess - actual_views)
+                    percentage_diff = (difference / actual_views) * 100 if actual_views > 0 else float('inf')
+
+                    points_earned = 0
+                    if percentage_diff <= 10:
+                        points_earned = 100
+                        st.success(f"🎉 Excellent guess! Difference: {difference:.1f}M ({percentage_diff:.1f}%). You earned 100 points!")
+                    elif percentage_diff <= 25:
+                        points_earned = 50
+                        st.info(f"👍 Good guess! Difference: {difference:.1f}M ({percentage_diff:.1f}%). You earned 50 points!")
+                    elif percentage_diff <= 50:
+                        points_earned = 20
+                        st.warning(f"🙂 Fair guess. Difference: {difference:.1f}M ({percentage_diff:.1f}%). You earned 20 points.")
+                    else:
+                        st.error(f"😬 A bit off. Difference: {difference:.1f}M ({percentage_diff:.1f}%). No points this round.")
+                    
+                    st.session_state.game_score_gtv += points_earned
+                    st.rerun() # Rerun to update display and hide input
+            else: # Revealed state
+                st.write(f"Your Guess was: **{st.session_state.user_guess_gtv:.1f} million**")
+                st.write(f"Actual Views: **{actual_views:.1f} million**")
+                # The feedback message is already shown on reveal, so no need to repeat unless you want to.
+
+        st.markdown(f"--- \n**Your Total Score: {st.session_state.game_score_gtv} points**")
+        if st.button("Reset Score", key="reset_score_gtv_tool56"):
+            st.session_state.game_score_gtv = 0
+            st.session_state.current_challenge_gtv = None
+            st.session_state.gtv_revealed = False
+            st.rerun()
+
+# Tool 57: Netflix Trivia Challenge
+with st.expander("🧠 Tool 57: Netflix Trivia Challenge"):
+    st.subheader("Test Your Netflix Dataset Knowledge!")
+
+    if 'trivia_score' not in st.session_state:
+        st.session_state.trivia_score = 0
+        st.session_state.trivia_questions = []
+        st.session_state.current_trivia_idx = 0
+        st.session_state.trivia_answer_submitted = False
+
+    def generate_trivia_questions(df_trivia, num_questions=5):
+        questions = []
+        if df_trivia.empty: return questions
+
+        # Q1: Highest IMDb score
+        if 'imdb_score' in df_trivia.columns and 'title' in df_trivia.columns:
+            top_rated = df_trivia.nlargest(5, 'imdb_score')
+            if not top_rated.empty:
+                correct_ans = top_rated.iloc[0]['title']
+                options = random.sample(df_trivia['title'].dropna().unique().tolist(), 3) + [correct_ans]
+                random.shuffle(options)
+                questions.append({"question": "Which title has the highest IMDb score in this dataset sample?", "options": options, "answer": correct_ans, "type": "mcq"})
+
+        # Q2: Release year of a random title
+        if 'release_year' in df_trivia.columns and 'title' in df_trivia.columns:
+            sample_q2 = df_trivia.dropna(subset=['release_year', 'title']).sample(1).iloc[0]
+            correct_ans = str(int(sample_q2['release_year']))
+            other_years = [str(int(y)) for y in df_trivia['release_year'].dropna().unique() if int(y) != int(sample_q2['release_year'])]
+            options = random.sample(other_years, min(3, len(other_years))) + [correct_ans]
+            random.shuffle(options)
+            questions.append({"question": f"In what year was '{sample_q2['title']}' released?", "options": options, "answer": correct_ans, "type": "mcq"})
+
+        # Q3: Most common genre
+        if 'listed_in' in df_trivia.columns:
+            all_genres_trivia = [g.strip() for sublist in df_trivia['listed_in'].str.split(',') for g in sublist if g.strip()]
+            if all_genres_trivia:
+                genre_counts_trivia = Counter(all_genres_trivia)
+                correct_ans = genre_counts_trivia.most_common(1)[0][0]
+                other_genres = [g for g,c in genre_counts_trivia.most_common(10) if g != correct_ans]
+                options = random.sample(other_genres, min(3, len(other_genres))) + [correct_ans]
+                random.shuffle(options)
+                questions.append({"question": "What is the most common genre in this dataset?", "options": options, "answer": correct_ans, "type": "mcq"})
+        
+        # Q4: Country with most titles
+        if 'country' in df.columns:
+            country_counts_trivia = df['country'].astype(str).apply(lambda x: x.split(',')[0].strip()).value_counts()
+            if not country_counts_trivia.empty:
+                correct_ans = country_counts_trivia.index[0]
+                other_countries = country_counts_trivia.index[1:min(10, len(country_counts_trivia))].tolist()
+                options = random.sample(other_countries, min(3, len(other_countries))) + [correct_ans]
+                random.shuffle(options)
+                questions.append({"question": "Which primary country has produced the most titles in this dataset?", "options": options, "answer": correct_ans, "type": "mcq"})
+
+        return random.sample(questions, min(num_questions, len(questions))) if questions else []
+
+    if st.button("Start/Restart Trivia Challenge", key="start_trivia_tool57"):
+        st.session_state.trivia_questions = generate_trivia_questions(df, num_questions=5)
+        st.session_state.current_trivia_idx = 0
+        st.session_state.trivia_score = 0
+        st.session_state.trivia_answer_submitted = False
+        if not st.session_state.trivia_questions:
+            st.warning("Could not generate trivia questions. Dataset might be too small or lack required columns.")
+        st.rerun()
+
+    if st.session_state.trivia_questions and st.session_state.current_trivia_idx < len(st.session_state.trivia_questions):
+        current_q = st.session_state.trivia_questions[st.session_state.current_trivia_idx]
+        st.markdown(f"**Question {st.session_state.current_trivia_idx + 1}/{len(st.session_state.trivia_questions)}:** {current_q['question']}")
+        
+        if not st.session_state.trivia_answer_submitted:
+            user_answer_trivia = st.radio("Your answer:", current_q['options'], key=f"trivia_q_{st.session_state.current_trivia_idx}")
+            if st.button("Submit Answer", key=f"submit_trivia_{st.session_state.current_trivia_idx}"):
+                st.session_state.trivia_user_choice = user_answer_trivia # Store choice
+                st.session_state.trivia_answer_submitted = True
+                if user_answer_trivia == current_q['answer']:
+                    st.session_state.trivia_score += 10
+                    st.success(f"Correct! The answer was {current_q['answer']}. You earned 10 points.")
+                else:
+                    st.error(f"Incorrect. The correct answer was {current_q['answer']}.")
+                st.rerun()
+        else: # Answer submitted, show result and next button
+            st.write(f"You chose: {st.session_state.trivia_user_choice}")
+            if st.session_state.trivia_user_choice == current_q['answer']:
+                 st.success(f"Correct! The answer was {current_q['answer']}.")
+            else:
+                 st.error(f"Incorrect. The correct answer was {current_q['answer']}.")
+
+            if st.button("Next Question", key=f"next_trivia_{st.session_state.current_trivia_idx}"):
+                st.session_state.current_trivia_idx += 1
+                st.session_state.trivia_answer_submitted = False
+                st.rerun()
+
+    elif st.session_state.trivia_questions and st.session_state.current_trivia_idx >= len(st.session_state.trivia_questions):
+        st.balloons()
+        st.subheader("Trivia Challenge Complete!")
+        st.write(f"Your final score: {st.session_state.trivia_score} out of {len(st.session_state.trivia_questions) * 10} points.")
+
+    st.markdown(f"--- \n**Current Trivia Score: {st.session_state.trivia_score} points**")
 
 st.markdown("---")
 st.markdown("**Netflix Data Analytics Dashboard** - Comprehensive toolkit for data analysis capstone projects")
