@@ -2383,18 +2383,51 @@ with st.expander("🧹 Tool 53: Data Cleaning & Preparation Showcase"):
     """)
 
     if not df.empty:
+        df_showcase = df.copy() # Work on a copy for this showcase
+
         st.markdown("#### 1. Handling Missing Values")
-        st.write("Missing values can skew analysis. Here's a summary for the loaded dataset:")
-        missing_counts_showcase = df.isnull().sum()
+        st.write("Missing values can skew analysis. Here's a demonstration:")
+
+        # Simulate missing data if the original df is clean, for demonstration
+        simulated_missing = False
+        if df_showcase.isnull().sum().sum() == 0: # Check if original df has no NaNs
+            simulated_missing = True
+            st.caption("ℹ️ _The loaded dataset appears to have no missing values. For demonstration, some missing values will be simulated below._")
+            # Introduce some NaNs into df_showcase
+            cols_to_mess_up = []
+            if 'director' in df_showcase.columns: cols_to_mess_up.append('director')
+            if 'cast' in df_showcase.columns: cols_to_mess_up.append('cast')
+            if 'country' in df_showcase.columns: cols_to_mess_up.append('country')
+            if 'imdb_score' in df_showcase.columns and pd.api.types.is_numeric_dtype(df_showcase['imdb_score']):
+                cols_to_mess_up.append('imdb_score')
+            
+            if cols_to_mess_up and len(df_showcase) > 0:
+                num_rows_to_affect = min(3, len(df_showcase)) # Affect up to 3 rows
+                for col in cols_to_mess_up:
+                    # Ensure we don't try to sample more than available rows
+                    sample_size = min(num_rows_to_affect, len(df_showcase))
+                    if sample_size > 0:
+                        random_indices = random.sample(range(len(df_showcase)), k=sample_size)
+                        df_showcase.loc[random_indices, col] = np.nan
+            elif not cols_to_mess_up:
+                st.write("Could not find suitable columns (e.g., director, cast, country, imdb_score) to simulate missing data.")
+
+        missing_counts_showcase = df_showcase.isnull().sum()
         missing_df_showcase = missing_counts_showcase[missing_counts_showcase > 0].rename("Missing Count").to_frame()
+        
         if not missing_df_showcase.empty:
+            st.write("Summary of (potentially simulated) missing values:")
             st.dataframe(missing_df_showcase.T)
-            st.write("Common strategies (applied selectively in tools):")
-            st.markdown("- **Dropping rows/columns:** If missing data is extensive or a column is not critical.")
-            st.markdown("- **Imputation:** Filling missing values (e.g., with mean, median, mode, or a constant like 'Unknown'). For example, 'director' or 'cast' might be filled with 'Unknown'.")
-            st.markdown("- **Model-based imputation:** More advanced, using other features to predict missing values.")
+            st.write("Common strategies (applied selectively in other tools):")
+            st.markdown("- **Dropping rows/columns:** If missing data is extensive or a column is not critical. Example: `df.dropna(subset=['critical_column'], inplace=True)`")
+            st.markdown("- **Imputation (Filling):**")
+            st.markdown("  - **Categorical:** Fill with mode or a constant like 'Unknown'. Ex: `df['director'].fillna('Unknown Director', inplace=True)`")
+            st.markdown("  - **Numerical:** Fill with mean, median. Ex: `df['imdb_score'].fillna(df['imdb_score'].median(), inplace=True)`")
+            st.markdown("- **Model-based imputation:** More advanced, using other features to predict missing values (e.g., using `sklearn.impute.KNNImputer`).")
+        elif simulated_missing and not cols_to_mess_up : # Simulation was intended but no suitable columns
+            pass # Message already shown
         else:
-            st.success("No missing values found in the currently loaded dataset (or they were handled prior to this view).")
+            st.success("No missing values found in the loaded dataset, and no suitable columns were identified for simulation in this showcase.")
 
         st.markdown("#### 2. Feature Engineering Examples")
         st.markdown("- **Extracting Numeric Duration:** The 'duration' column (e.g., '1 Season', '90 min') is often converted to a purely numeric form for analysis (see Tool 4: Content Duration Analysis).")
