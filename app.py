@@ -2455,28 +2455,63 @@ with st.expander("❤️ Tool 54: My Favorite Titles"):
     if 'favorite_titles' not in st.session_state:
         st.session_state.favorite_titles = []
 
-    # Example of how to add a favorite (this button would be in other tools)
-    # For demonstration, let's add a way to manually add a favorite here if df is loaded
+    # Initialize/manage the list of sample titles for the selectbox
+    if 'fav_sample_options_list' not in st.session_state:
+        st.session_state.fav_sample_options_list = []
+
     if not df.empty and 'title' in df.columns:
-        sample_title_for_fav = st.selectbox("Select a sample title to add to favorites (demo):", df['title'].dropna().sample(min(5, len(df))).tolist(), key="fav_sample_add_tool54")
-        if st.button("Add Sample to Favorites", key="fav_add_button_tool54"):
-            if sample_title_for_fav not in st.session_state.favorite_titles:
-                st.session_state.favorite_titles.append(sample_title_for_fav)
-                st.success(f"Added '{sample_title_for_fav}' to favorites!")
+        # Function to generate/refresh sample options
+        def refresh_sample_options_for_favorites():
+            unique_titles = df['title'].dropna().unique()
+            if len(unique_titles) > 0:
+                sample_size = min(5, len(unique_titles))
+                st.session_state.fav_sample_options_list = random.sample(list(unique_titles), sample_size)
             else:
-                st.info(f"'{sample_title_for_fav}' is already in favorites.")
+                st.session_state.fav_sample_options_list = []
+
+        # Populate on first load if empty and data is available
+        if not st.session_state.fav_sample_options_list and len(df['title'].dropna().unique()) > 0 :
+            refresh_sample_options_for_favorites()
+
+        # Button to explicitly refresh the sample titles
+        if st.button("Refresh Sample Titles for Selection", key="refresh_fav_samples_button_tool54"):
+            refresh_sample_options_for_favorites()
+            st.rerun() # Rerun to update the selectbox with new options
+
+        if st.session_state.fav_sample_options_list:
+            # The selectbox will now use a stable list of options until "Refresh" is clicked.
+            # Its internal state (what's selected) is managed by Streamlit via its key.
+            selected_title_for_adding = st.selectbox(
+                "Select a sample title to add to favorites (demo):",
+                options=st.session_state.fav_sample_options_list,
+                key="fav_title_selector_tool54" # Unique key for the selectbox
+            )
+
+            if st.button("Add Selected Title to Favorites", key="fav_add_button_tool54"):
+                # `selected_title_for_adding` will correctly hold the user's selection
+                # from the `st.session_state.fav_sample_options_list`
+                if selected_title_for_adding:
+                    if selected_title_for_adding not in st.session_state.favorite_titles:
+                        st.session_state.favorite_titles.append(selected_title_for_adding)
+                        st.success(f"Added '{selected_title_for_adding}' to favorites!")
+                    else:
+                        st.info(f"'{selected_title_for_adding}' is already in favorites.")
+                else:
+                    st.warning("No title selected to add.") # Should not happen if options are not empty
+        else:
+            st.write("No sample titles available to select. Ensure 'title' column has data and try refreshing, or load a dataset.")
 
     if not st.session_state.favorite_titles:
         st.info("You haven't added any titles to your favorites yet.")
     else:
         st.write("Your favorite titles:")
-        for i, title in enumerate(st.session_state.favorite_titles):
+        for i, title_in_fav_list in enumerate(list(st.session_state.favorite_titles)): # Iterate over a copy
             col1_fav, col2_fav = st.columns([0.8, 0.2])
-            col1_fav.write(f"- {title}")
+            col1_fav.write(f"- {title_in_fav_list}")
             if col2_fav.button(f"Remove##{i}", key=f"remove_fav_{i}_tool54"):
-                st.session_state.favorite_titles.pop(i)
+                del st.session_state.favorite_titles[i] # Remove by index from the original list
                 st.rerun()
-        
+
         if st.button("Clear All Favorites", key="clear_fav_tool54"):
             st.session_state.favorite_titles = []
             st.rerun()
