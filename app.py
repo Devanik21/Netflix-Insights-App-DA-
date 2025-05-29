@@ -21,6 +21,14 @@ import random # Added for Tools 56, 57
 st.set_page_config(page_title="Netflix Analytics Dashboard", layout="wide", page_icon="🎬")
 st.title("🎬 Netflix Data Analytics Dashboard")
 
+
+with st.sidebar:
+    st.image("1.jpg", caption="", use_container_width=True)
+
+
+
+st.image("2.jpg",use_container_width=True)
+
 # Custom CSS for Dark Theme and Flashcards
 st.markdown("""
 <style>
